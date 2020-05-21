@@ -1,0 +1,18 @@
+language: python
+python:
+- '3.6'
+- '3.7'
+- '3.8'
+install: bash build_tools/travis/install.sh
+script: pytest
+deploy:
+  provider: pypi
+  user: __token__
+  distributions: sdist bdist_wheel
+  on:
+    tags: true
+    branch: master
+  skip_cleanup: true
+  skip_existing: true
+  password:
+    secure: Awww+2mwgWQ2d9L7iFbZra5eTHKTu8C/bfZizVw1sv+w0H2HYoi6ephZaZbjf2sG6MBt72+ufx58AJDIzR0UfkDjRUan5KuyYF1oIMPMzjD3zv9Vc/WriN/tVvOv1GyNuVOILP1kHewS+s2yR7GtfanL/92c01BCYrtNkDSXE/5kN+v+gp8ercFzhs8REfsJ4+fZVG46GDa/enX8BwO9FdC4O9q0CG4Kq2IZ9O2aAu9PwxCclpIEsYO7eHUavFvVuhABFP0aIrbRYck8maNYg5IemJZ8p3HVmBYqM25JsgTiEw93oSXIO3OPsx1BCLZn2H7Txorz8+K612rZr9bWvYluJCWout1LGwvz9/4QIBNnl/w+VACQiGCarLDonN3LwqZsAI2/brPtRUnQORVmFznU8817kLCRcXgoYMU8BSUcnkgA6c6BIdFwRsA+VUNjEsaxiwuSGF2Gbv3q8jTGIMlZEFe+pwT4bRJr7AxUk2bd+5FcHvIMi7XLVZqfC4iLgO6pwiJOQvEqYKOVCmPsd+5qp3I07qrMjXeOkrxU8JwY2C11vzV4GO4hUQm5q3rdfb6S2Po1W0+nxbjBnm8X0Q4FHPxXukuqvusnkZ1cdbftrVBlwtsWH2jALDkvPcC+7UvWIwG2ksv4BpmVBziFclXbZH/8fkHX9IN+txb0B/s=
