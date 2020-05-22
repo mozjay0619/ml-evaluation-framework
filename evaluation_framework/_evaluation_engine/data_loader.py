@@ -62,7 +62,7 @@ class DataLoader():
 
     def save_to_s3(self):
 
-        memmap_root_dirpath = os.path.join(os.getcwd(), self.evaluation_manager.memmap_root_dirname)
+        memmap_root_dirpath = os.path.join(os.getcwd(), self.evaluation_manager.memmap_root_dirpath)
         s3_url = self.evaluation_manager.S3_path
         object_name = self.evaluation_manager.memmap_root_dirname + '.zip'
         s3_upload_zip_dir(memmap_root_dirpath, s3_url, object_name)
