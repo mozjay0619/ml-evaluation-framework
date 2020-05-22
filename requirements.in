@@ -8,3 +8,5 @@ msgpack==1.0.0
 pyarrow
 tables
 scikit-learn
+future
+boto3
