@@ -1,4 +1,6 @@
-__version__ = "0.0.b0"
+
+__version__ = "0.0.b2"
+
 
 
 from ._evaluation_manager.config_setter import ConfigSetter
