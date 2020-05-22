@@ -9,7 +9,7 @@ VERSION = evaluation_framework.__version__
 #     long_description = fh.read()
 
 setup(
-	name="evaluation_framework", 
+	name="ml-evaluation-framework", 
 	version=VERSION,
 	author="Jay Kim",
 	description="",
