@@ -23,7 +23,7 @@ import shutil
 
 ORDERED_CV_SCHEMES = ['date_rolling_window']
 CV_OPTIONAL_ARGUMENTS = ['orderby', 'train_window', 'test_window']
-OPTIONAL_ARGUMENTS = ['groupby', 'hyperparameters', 'user_configs', 'S3_path', 'user_configs']
+OPTIONAL_ARGUMENTS = ['groupby', 'hyperparameters', 'user_configs', 'S3_path', 'user_configs', 'return_predictions']
 CV_SCHEME_OPTIONS = ['date_rolling_window', 'k_fold', 'binary_classification']
 REQUIRED_ESTIMATOR_MEMBER_METHODS = ['fit', 'predict']
 FIT_METHOD_PARAMETERS_PARAMETER_NAME = 'parameters'
@@ -45,7 +45,8 @@ class ConfigSetter():
                     hyperparameters=None, cross_validation_scheme=None,
                     groupby=None, 
                     orderby=None, train_window=None, test_window=None,
-                    user_configs=None, local_directory_path=None, S3_path=None, **kwargs):
+                    user_configs=None, local_directory_path=None, S3_path=None, 
+                    return_predictions=None, **kwargs):
         
         self.estimator = estimator
         self.data = data
@@ -60,6 +61,7 @@ class ConfigSetter():
         self.user_configs = user_configs
         self.local_directory_path = local_directory_path
         self.S3_path = S3_path
+        self.return_predictions = return_predictions
 
         print("\u2714 Checking configs requirements...    ", end="", flush=True)
 
@@ -159,7 +161,34 @@ class ConfigSetter():
         self._validate_feature_names()
         self._validate_data()
         self._validate_hyperparameters()
+        self._validate_return_predictions()
         return True
+
+    def _validate_return_predictions(self):
+
+        if self.return_predictions is None:
+            self.return_predictions = False
+
+        else:
+
+            if not isinstance(self.return_predictions, bool):
+                raise TypeError('[ return_predictions ] must be boolean but instead got '
+                                '{}'.format(type(self.return_predictions)))
+
+            if self.return_predictions:
+
+                self.prediction_records_dirname = 'prediction_arrays'
+
+                # makes sense to join the predictions on self.data since that data is already
+                # loaded in memory. It would be expensive to re-load it into memory, esp. if it
+                # is really big.
+
+                # create key column to join the predictions
+                key_column = np.arange(len(self.data)).astype(np.float32)
+                self.data['specialEF_float32_UUID'] = key_column
+
+                # assuming data validation was done before...
+                self.numeric_types.append('specialEF_float32_UUID')
 
     def _validate_user_configs(self):
 
@@ -180,10 +209,7 @@ class ConfigSetter():
             
         self.initial_dirpath = os.getcwd()
         
-        self.hdf5_filename = 'data.h5'
         self.memmap_root_dirname = 'memmap_root_dir'
-
-        self.hdf5_filepath = os.path.join(self.local_directory_path, self.hdf5_filename)
         self.memmap_root_dirpath = os.path.join(self.local_directory_path, self.memmap_root_dirname)
 
     def _validate_s3_path(self):
