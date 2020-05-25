@@ -10,8 +10,11 @@ from evaluation_framework.utils.s3_utils import s3_delete_object
 
 from evaluation_framework.utils.zip_utils import unzip_dir
 
-from .memmap_layer import translate_hdf2memmap
-from .memmap_layer import save_obj
+from evaluation_framework.utils.objectIO_utils import save_obj
+from evaluation_framework.utils.objectIO_utils import load_obj
+
+from evaluation_framework.utils.memmap_utils import write_memmap
+from evaluation_framework.utils.memmap_utils import read_memmap
 
 
 import os
@@ -19,199 +22,298 @@ import shutil
 import tables
 from collections import namedtuple
 import pickle
+import numpy as np
 
 
-RootAttribute = namedtuple('RootAttribute', [
-    'sorted_group_keys'])
+def load_local_data(evaluation_manager):
 
-GroupAttribute = namedtuple('GroupAttribute', [
-    'numeric_keys',
-    'missing_keys'])
+    memmap_root_dirpath = os.path.join(os.getcwd(), evaluation_manager.memmap_root_dirname)
 
-
-class DataLoader():
-    """straight forward procedures here"""
-    
-    def __init__(self, evaluation_manager=None):
-        
-        # if S3_path = None, don't save to S3
-        # self.evaluation_manager = evaluation_manager
-        # self.local_dirpath = evaluation_manager.local_directory_path
-        # self.S3_path = evaluation_manager.S3_path
-        # self.overwrite = True  # remove and make it datetime indexed dir!
-        
-        # if self.local_dirpath:
-        #     self.check_local_dirpath()
-        self.evaluation_manager = evaluation_manager
-
-
-    def load_local_data(self):
-
-        hdf5_filepath = os.path.join(os.getcwd(), self.evaluation_manager.hdf5_filename)
-        memmap_root_dirpath = os.path.join(os.getcwd(), self.evaluation_manager.memmap_root_dirname)
+    try:
+        os.makedirs(memmap_root_dirpath)
+    except:
+        shutil.rmtree(memmap_root_dirpath)
         os.makedirs(memmap_root_dirpath)
 
-        self.open_hdf5_file()
-        self.write_hdf5_file()
+    if evaluation_manager.return_predictions:
 
-        memmap_map = translate_hdf2memmap(self.hdf5_fileobj, self.evaluation_manager.memmap_root_dirpath)
-        memmap_map_filepath = os.path.join(self.evaluation_manager.memmap_root_dirpath, 'memmap_map')
+        prediction_records_dirpath = os.path.join(os.getcwd(), evaluation_manager.prediction_records_dirname)
+
+        try:
+            os.makedirs(prediction_records_dirpath)
+        except:
+            shutil.rmtree(prediction_records_dirpath)
+            os.makedirs(prediction_records_dirpath)
+
+        # # again, replicate the filesys: precursor to HMF (hierarchical memmap format)
+
+        # # from _write_memmap_filesys
+        # memmap_map = dict()
+        # memmap_map['attributes'] = dict()
+        # memmap_map['groups'] = dict()  # i.e. we define the first level to be groups
+        # # memmap_map['attributes']['sorted_group_keys'] = f.get_node_attr('/', 'root_attribute').sorted_group_keys
+        # # the dict for next layer must be defined in the previous layer
+        # # would be wise to define arrays as well since a node can have both groups and arrays
+        # memmap_map['root_dirpath'] = prediction_records_dirpath
+
+        # memmap_map_filepath = os.path.join(prediction_records_dirpath, 'memmap_map')
+        # save_obj(memmap_map, memmap_map_filepath)
+
+
+
+
+
+
+    memmap_map = _write_memmap_filesys(evaluation_manager, memmap_root_dirpath)
+    return memmap_map
+
+def upload_local_data(task_manager):
+
+    memmap_root_dirpath = os.path.join(os.getcwd(), task_manager.memmap_root_dirpath)
+    s3_url = task_manager.S3_path
+    object_name = task_manager.memmap_root_dirname + '.zip'
+    s3_upload_zip_dir(memmap_root_dirpath, s3_url, object_name)
+
+def download_local_data(task_manager):
+    """
+    1. create memmap dir
+    3. translate hdf5 to memmap
+    4. graph will just use the memmap dirname to read it off from the "current pos"
+
+    """
+
+    s3_download_object(os.getcwd(), task_manager.S3_path, task_manager.memmap_root_dirname + '.zip')
+
+    zipped_filepath = os.path.join(os.getcwd(), task_manager.memmap_root_dirname + '.zip')
+    unzip_dir(zipped_filepath, task_manager.memmap_root_dirname)
+
+    if task_manager.return_predictions:
+
+        # turn this into memmap filesys too when the tool is ready
+
+        prediction_records_dirpath = os.path.join(os.getcwd(), task_manager.prediction_records_dirname)
+
+        try:
+            os.makedirs(prediction_records_dirpath)
+        except:
+            shutil.rmtree(prediction_records_dirpath)
+            os.makedirs(prediction_records_dirpath)
+
+        # NOTE FOR HMF: again, replicate the filesys: precursor to HMF (hierarchical memmap format)
+
+        # from _write_memmap_filesys
+        memmap_map = dict()
+        memmap_map['attributes'] = dict()
+        memmap_map['groups'] = dict()  # i.e. we define the first level to be groups
+        # memmap_map['attributes']['sorted_group_keys'] = f.get_node_attr('/', 'root_attribute').sorted_group_keys
+        memmap_map['root_dirpath'] = prediction_records_dirpath
+
+        memmap_map_filepath = os.path.join(root_dirpath, 'memmap_map')
         save_obj(memmap_map, memmap_map_filepath)
 
-        self.close_hdf5_file()
+def upload_remote_data(task_manager):
+    """
+    1. zip the prediction array directory
+    2. send them to S3 bucket
 
-    def save_to_s3(self):
+    **The file structure should be identical to that of local machine, making it possible to
+    use this method on local machine as well for testing purposes.
+    """
+    pass
 
-        memmap_root_dirpath = os.path.join(os.getcwd(), self.evaluation_manager.memmap_root_dirpath)
-        s3_url = self.evaluation_manager.S3_path
-        object_name = self.evaluation_manager.memmap_root_dirname + '.zip'
-        s3_upload_zip_dir(memmap_root_dirpath, s3_url, object_name)
+def download_remote_data(task_manager):
+    """
+    1. download the prediction array zip dirs from S3
+    2. unzip them and place them into the same directory
+    """
+    pass
+
+def _write_memmap_filesys(task_manager, root_dirpath):
+    """memmap mimicking hdf5 filesystem. 
+    root_dirpath/
+        memmap_map
+        groupA__groupA'__arrayA (array)
+        groupA__groupA'__arrayB (array)  
+        ... etc
 
 
-    def load_remote_data(self):
-        """
-        1. create memmap dir
-        3. translate hdf5 to memmap
-        4. graph will just use the memmap dirname to read it off from the "current pos"
+    root_dirpath / group_dirpath / filepath
+    memmap['groups'][group_key]['groups'][group_key_innder]['arrays'][filepath, dtype, shape]
 
-        """
+    """
+    memmap_map = dict()
+    memmap_map['attributes'] = dict()
+    memmap_map['groups'] = dict()  # i.e. we define the first level to be groups
+    # memmap_map['attributes']['sorted_group_keys'] = f.get_node_attr('/', 'root_attribute').sorted_group_keys
+    memmap_map['root_dirpath'] = root_dirpath
 
-        s3_download_object(os.getcwd(), self.evaluation_manager.S3_path, self.evaluation_manager.memmap_root_dirname + '.zip')
+    memmap_map_filepath = os.path.join(root_dirpath, 'memmap_map')
 
-        zipped_filepath = os.path.join(os.getcwd(), self.evaluation_manager.memmap_root_dirname + '.zip')
-        unzip_dir(zipped_filepath, self.evaluation_manager.memmap_root_dirname)
+    group_key_size_tuples = []
 
+    # Add a uuid column for recording purposes
+    # task_manager.numeric_types += ['specialEF_float32_UUID']
+
+    for group_key, grouped_pdf in task_manager.data.groupby(by=task_manager.groupby):
+
+        group_key_size_tuples.append([group_key, len(grouped_pdf)])
+
+        if task_manager.orderby:
+            grouped_pdf = grouped_pdf.sort_values(by=task_manager.orderby)
+        grouped_pdf = grouped_pdf.reset_index(drop=True)
+
+        # # Add a uuid column for recording purposes
+        # grouped_pdf['specialEF_float32_UUID'] = np.arange(len(grouped_pdf)).astype(np.float32)
+
+        memmap_map['groups'][group_key] = dict()
+        source_dirpath = memmap_map['root_dirpath']
+        # memmap_map['groups'][group_key]['group_dirpath'] = '__'.join((source_dirpath, group_key))
+        memmap_map['groups'][group_key]['group_dirpath'] = os.path.join(source_dirpath, group_key)  
+        # NOTE FOR HMF: the first level after root_dirpath needs to be os path join not '__'
+        # NOTE FOR HMF: need a check for this for generalized self-describing memmap tool
+        memmap_map['groups'][group_key]['attributes'] = dict()
+        memmap_map['groups'][group_key]['arrays'] = dict()  # i.e. we define the second level to be arrays
         
-    def load_data(self):
-        
-        
-        self.local_dirpath = self.evaluation_manager.local_directory_path
-        self.S3_path = self.evaluation_manager.S3_path or None
-        self.overwrite = True
-        
-        # self.check_local_dirpath()
-#         self.save_feather()
-        self.open_hdf5_file()
-        self.write_hdf5_file()
+        # NOTE FOR HMF: later, develop this into recursive function and a generalized open source tool
 
-        memmap_map = translate_hdf2memmap(self.hdf5_fileobj, self.evaluation_manager.memmap_root_dirpath)
-        memmap_map_filepath = os.path.join(self.evaluation_manager.memmap_root_dirpath, 'memmap_map')
-        save_obj(memmap_map, memmap_map_filepath)
+        _write_datetime_types(task_manager, memmap_map['groups'][group_key], grouped_pdf)
+        _write_str_types(task_manager, memmap_map['groups'][group_key], grouped_pdf)
+        _write_numeric_types(task_manager, memmap_map['groups'][group_key], grouped_pdf)
 
-        self.close_hdf5_file()
+        if task_manager.orderby:
+            _write_orderby_array(task_manager, memmap_map['groups'][group_key], grouped_pdf)
+
+        # if task_manager.return_predictions:
+        #     _write_prediction_array(task_manager, memmap_map['groups'][group_key], grouped_pdf)
+
+        memmap_map['groups'][group_key]['attributes']['numeric_keys'] = task_manager.numeric_types
+        memmap_map['groups'][group_key]['attributes']['missing_keys'] = task_manager.missing_keys
+
+    group_key_size_tuples = sorted(group_key_size_tuples, key=lambda x: x[1])
+    sorted_group_keys = [elem[0] for elem in group_key_size_tuples]
+    memmap_map['attributes']['sorted_group_keys'] = sorted_group_keys
+
+    save_obj(memmap_map, memmap_map_filepath)
+
+    return memmap_map
+
+def _write_datetime_types(task_manager, group_dict, grouped_pdf):
+
+    for key in task_manager.missing_keys['datetime_types']:
+
+        # memmap array info
+        array = cast_datetime2int64(grouped_pdf[key]).values
+        dtype = str(array.dtype)
+        shape = array.shape
+
+        group_dict['arrays'][key] = dict()  # each array object is a dict as well for memmap case, unlike self documenting hdf5
+
+        source_dirpath = group_dict['group_dirpath']
+        group_dict['arrays'][key]['filepath'] = '__'.join((source_dirpath, key))
+        group_dict['arrays'][key]['dtype'] = dtype
+        group_dict['arrays'][key]['shape'] = shape
+
+        # later, develop this into recursive function and a generalized open source tool
+
+        write_memmap(
+            group_dict['arrays'][key]['filepath'], 
+            group_dict['arrays'][key]['dtype'], 
+            group_dict['arrays'][key]['shape'], 
+            array)
+
+def _write_str_types(task_manager, group_dict, grouped_pdf):
+
+    for key in task_manager.missing_keys['str_types']:
+
+        array = encode_str2bytes(grouped_pdf[key])
+        dtype = str(array.dtype)
+        shape = array.shape
+
+        group_dict['arrays'][key] = dict()  # each array object is a dict as well for memmap case, unlike self documenting hdf5
+
+        source_dirpath = group_dict['group_dirpath']
+        group_dict['arrays'][key]['filepath'] = '__'.join((source_dirpath, key))
+        group_dict['arrays'][key]['dtype'] = dtype
+        group_dict['arrays'][key]['shape'] = shape
+
+        write_memmap(
+            group_dict['arrays'][key]['filepath'], 
+            group_dict['arrays'][key]['dtype'], 
+            group_dict['arrays'][key]['shape'], 
+            array)
+
+def _write_numeric_types(task_manager, group_dict, grouped_pdf):
+
+    key = 'numeric_types'
+
+    # the code below can be made uniform
+    # the below part corresponds to pytable's create_array(group_object, key, array) method
+    # can be made into a generalized tool
+
+    array = grouped_pdf[task_manager.numeric_types].values
+    dtype = str(array.dtype)
+    shape = array.shape
+
+    group_dict['arrays'][key] = dict()
+
+    source_dirpath = group_dict['group_dirpath']
+    group_dict['arrays'][key]['filepath'] = '__'.join((source_dirpath, key))
+    group_dict['arrays'][key]['dtype'] = dtype
+    group_dict['arrays'][key]['shape'] = shape
+
+    write_memmap(
+        group_dict['arrays'][key]['filepath'], 
+        group_dict['arrays'][key]['dtype'], 
+        group_dict['arrays'][key]['shape'], 
+        array)
+
+def _write_orderby_array(task_manager, group_dict, grouped_pdf):
+
+    key = 'orderby_array'
+
+    array = encode_date_sequence(grouped_pdf[task_manager.orderby]).values
+    dtype = str(array.dtype)
+    shape = array.shape
+
+    group_dict['arrays'][key] = dict()
+
+    source_dirpath = group_dict['group_dirpath']
+    group_dict['arrays'][key]['filepath'] = '__'.join((source_dirpath, key))
+    group_dict['arrays'][key]['dtype'] = dtype
+    group_dict['arrays'][key]['shape'] = shape
+
+    write_memmap(
+        group_dict['arrays'][key]['filepath'], 
+        group_dict['arrays'][key]['dtype'], 
+        group_dict['arrays'][key]['shape'], 
+        array)
+
+# def _write_prediction_array(task_manager, group_dict, grouped_pdf):
+
+#     key = 'prediction_array'
+
+#     array = np.empty((len(grouped_pdf), 2)).astype(np.float32)
+#     array[:, 0] = np.arange(len(grouped_pdf))  # first column is index
+#     array[:, 1] = -1  # second column is for predictions
+#     dtype = str(array.dtype)
+#     shape = array.shape
+
+#     group_dict['arrays'][key] = dict()
+
+#     source_dirpath = group_dict['group_dirpath']
+#     group_dict['arrays'][key]['filepath'] = '__'.join((source_dirpath, key))
+#     group_dict['arrays'][key]['dtype'] = dtype
+#     group_dict['arrays'][key]['shape'] = shape
+
+#     write_memmap(
+#         group_dict['arrays'][key]['filepath'], 
+#         group_dict['arrays'][key]['dtype'], 
+#         group_dict['arrays'][key]['shape'], 
+#         array)
 
 
-        
-    # def check_local_dirpath(self):
-        
-    #     if os.path.exists(self.local_dirpath) and not self.overwrite:
-    #         raise ValueError('[ local_dirpath ] already exists. Set [ overwrite ] flag to True '
-    #                          'to use this directory path.')
-            
-    #     if os.path.exists(self.local_dirpath):
-    #         shutil.rmtree(self.local_dirpath)
-            
-    #     os.mkdir(self.local_dirpath)
+
+
+
+
     
-    def open_hdf5_file(self):
-        
-        hdf5_filepath = os.path.join(os.getcwd(), self.evaluation_manager.hdf5_filename )
-        self.hdf5_fileobj = tables.open_file(hdf5_filepath, 'w')    
-        
-    def write_hdf5_file(self):
-
-        group_key_size_tuples = []
-        
-        
-        for group_key, grouped_pdf in self.evaluation_manager.data.groupby(by=self.evaluation_manager.groupby):
-
-            # data_array_names = dict()
-
-            group_key_size_tuples.append([group_key, len(grouped_pdf)])
-    
-            group_obj = self.hdf5_fileobj.create_group("/", group_key)
-        
-            grouped_pdf = grouped_pdf.reset_index(drop=True)
-            
-            self._load_datetime_types(group_obj, grouped_pdf)
-            self._load_str_types(group_obj, grouped_pdf)
-            self._load_numeric_types(group_obj, grouped_pdf)
-
-            if self.evaluation_manager.orderby:
-
-                self._load_orderby_array(group_obj, grouped_pdf)
-
-            group_attr = GroupAttribute(
-                numeric_keys=self.evaluation_manager.numeric_types,
-                missing_keys=self.evaluation_manager.missing_keys)
-            self.hdf5_fileobj.set_node_attr('/{}'.format(group_key), 'group_attribute', group_attr)
-
-        group_key_size_tuples = sorted(group_key_size_tuples, key=lambda x: x[1])
-        sorted_group_keys = [elem[0] for elem in group_key_size_tuples]
-        root_attr = RootAttribute(sorted_group_keys=sorted_group_keys)
-        self.hdf5_fileobj.set_node_attr('/', 'root_attribute', root_attr)
-
-
-
-    # def _load_group_uuid_array(self, hdf5_fileobj, group_obj, evaluation_manager, grouped_pdf, data_array_names):
-
-    #     uuid_array = np.arange(len(grouped_pdf))
-
-
-    
-    def _load_datetime_types(self, group_obj, grouped_pdf):
-
-        for key in self.evaluation_manager.missing_keys['datetime_types']:
-
-            tmp_array = cast_datetime2int64(grouped_pdf[key]).values
-            self.hdf5_fileobj.create_array(group_obj, key, tmp_array)
-
-
-
-    def _load_str_types(self, group_obj, grouped_pdf):
-
-        for key in self.evaluation_manager.missing_keys['str_types']:
-
-            tmp_array = encode_str2bytes(grouped_pdf[key])
-            self.hdf5_fileobj.create_array(group_obj, key, tmp_array)
-
-    # target separate out later!
-
-    def _load_numeric_types(self, group_obj, grouped_pdf):
-
-        self.hdf5_fileobj.create_array(
-        	group_obj, 
-        	'numeric_types', 
-        	grouped_pdf[self.evaluation_manager.numeric_types].values)
-
-    def _load_orderby_array(self, group_obj, grouped_pdf):
-
-        self.hdf5_fileobj.create_array(
-            group_obj, 
-            'orderby_array',
-            encode_date_sequence(grouped_pdf[self.evaluation_manager.orderby]).values)
-
-
-
-        
-    def close_hdf5_file(self):
-        
-        self.hdf5_fileobj.close()
-        
-    
-    def save_feather(self):
-        # may not need to! if em data is not altered
-        pass
-    
-    def load_feather(self):
-        pass
-    
-    def save_to_S3(self):
-        pass
-    
-    def load_from_S3(self):
-        pass
-    
-#     def 
-        
-        

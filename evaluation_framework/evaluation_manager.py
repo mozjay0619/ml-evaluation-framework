@@ -1,16 +1,6 @@
-
 from ._evaluation_manager.config_setter import ConfigSetter 
 from ._evaluation_manager.method_setter import MethodSetter
 
-# REQUIRED_FIELDS = ['estimator', 'data', 'target_name', 'feature_names', 
-#               'cross_validation_scheme', 'hyperparameters',
-#               'orderby', 'train_window', 'test_window', 'groupby',
-#               'local_directory_path', 'S3_path',
-                   
-#               'str_types', 'datetime_types', 'numeric_types',
-                   
-#               'num_types_needed', 'missing_keys', 
-#               'hdf5_filepath']
 
 class EvaluationManager():
     
@@ -37,9 +27,4 @@ class EvaluationManager():
     def load_object_fields(self, source_obj):
         
         for k, v in source_obj.__dict__.items():
-            # if k in REQUIRED_FIELDS:
             self.__dict__[k] = v
-        
-        
-        
-        

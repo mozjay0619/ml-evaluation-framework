@@ -15,3 +15,10 @@ def get_merged_list_from_dict_list_values(d):
     
     return list(s)
 
+def is_nested_list(l):
+    
+    if not isinstance(l, list):
+        return False
+    else:
+        return any(isinstance(i, list) for i in l)
+        
