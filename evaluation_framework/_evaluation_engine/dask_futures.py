@@ -71,13 +71,27 @@ class DualClientFuture():
             worker_memory=yarn_client_worker_memory,
             environment="python:///usr/bin/python3")
         self.yarn_client = Client(self.yarn_cluster)
+
+        self.wait_container_resource_alloc()
         
         self.local_client_n_workers = local_client_n_workers
         self.yarn_client_n_workers = yarn_client_n_workers
         
         self.task_counter = 0
         self.yarn_client_n_workers = yarn_client_n_workers
-        
+
+    def wait_container_resource_alloc(self):
+
+        while True:
+            
+            waiting_containers = [yarn_container_obj for yarn_container_obj in self.yarn_cluster.workers() 
+                                  if str(yarn_container_obj.state)=='WAITING']
+            
+            if len(waiting_containers)==0:
+                break
+
+            time.sleep(1.0)
+
     def submit(self, func, *args, **kwargs):
 
         remainder = self.task_counter % (self.local_client_n_workers + self.yarn_client_n_workers)

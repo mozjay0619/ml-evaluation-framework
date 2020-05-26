@@ -82,7 +82,7 @@ def download_local_data(task_manager):
             shutil.rmtree(prediction_records_dirpath)
             os.makedirs(prediction_records_dirpath)
 
-def upload_remote_data(task_manager):
+def upload_remote_data(task_manager, ip_addr):
     """
     1. zip the prediction array directory
     2. send them to S3 bucket
@@ -90,14 +90,32 @@ def upload_remote_data(task_manager):
     **The file structure should be identical to that of local machine, making it possible to
     use this method on local machine as well for testing purposes.
     """
-    pass
+    source_dirpath = os.path.join(os.getcwd(), 'prediction_arrays')
+    
+    job_uuid = task_manager.memmap_root_S3_object_name.split('__')[-1]
+    host_uuid = ip_addr.replace('.', '-')
+    object_name = 'prediction_arrays' + '__' + host_uuid + '__' + job_uuid + '.zip'
+    
+    s3_url = task_manager.S3_path
+    s3_upload_zip_dir(source_dirpath, s3_url, object_name)
+    
+    return object_name
+    
 
 def download_remote_data(task_manager):
     """
     1. download the prediction array zip dirs from S3
     2. unzip them and place them into the same directory
     """
-    pass
+    s3_download_object(os.getcwd(), task_manager.S3_path, 'prediction_arrays')
+    tmp = os.listdir(os.getcwd())
+    prediction_arrays_zips = [elem for elem in tmp if elem.startswith('prediction_array') & elem.endswith('zip')]
+    
+    for prediction_arrays_zip in prediction_arrays_zips:
+        
+        zipped_filepath = os.path.join(os.getcwd(), prediction_arrays_zip)
+        unzip_dir(zipped_filepath, os.path.join(os.getcwd(), 'prediction_arrays'))
+        
 
 def _write_memmap_filesys(task_manager, root_dirpath):
     """memmap mimicking hdf5 filesystem. 
