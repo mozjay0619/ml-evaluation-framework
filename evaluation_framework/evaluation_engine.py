@@ -50,6 +50,7 @@ class EvaluationEngine():
                  yarn_container_n_workers=None, yarn_container_worker_vcores=None, yarn_container_worker_memory=None,
                  n_worker_nodes=None, use_yarn_cluster=None, use_auto_config=None, instance_type=None):
 
+
         # if not (use_yarn_cluster or use_auto_config):
 
         #     print('If ')
@@ -102,7 +103,7 @@ class EvaluationEngine():
         # need condition to open yarn or local!
         if self.task_manager.S3_path:
 
-            upload_local_data(task_manager)
+            upload_local_data(self.task_manager)
 
             self.dask_client = DualClientFuture(local_client_n_workers=self.local_client_n_workers, 
                                local_client_threads_per_worker=self.local_client_threads_per_worker, 
@@ -110,7 +111,7 @@ class EvaluationEngine():
                                yarn_client_worker_vcores=self.yarn_container_worker_vcores, 
                                yarn_client_worker_memory=self.yarn_container_worker_memory)
 
-            self.dask_client.submit_per_node(download_local_data, task_manager)
+            self.dask_client.submit_per_node(download_local_data, self.task_manager)
 
             num_threads = self.local_client_n_workers + self.yarn_container_n_workers*self.n_worker_nodes
 
