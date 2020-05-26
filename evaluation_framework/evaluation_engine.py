@@ -175,5 +175,6 @@ class EvaluationEngine():
         prediction_pdf.set_index('specialEF_float32_UUID', inplace=True)
         prediction_pdf = prediction_pdf.reindex(range(0, len(self.data)), fill_value=np.nan)
         self.data['specialEF_float32_predictions'] = prediction_pdf['specialEF_float32_predictions']
+        # self.data.drop(labels='specialEF_float32_UUID', axis=1, inplace=True)
         return self.data   
 
