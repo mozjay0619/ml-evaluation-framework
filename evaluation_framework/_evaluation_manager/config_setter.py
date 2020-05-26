@@ -212,8 +212,7 @@ class ConfigSetter():
     def _validate_s3_path(self):
 
         current_time = str(datetime.datetime.now()).replace(" ", '-')
-        self.memmap_root_S3_object_name = memmap_root_dirname +'__'+ str(datetime.datetime.now()).replace(" ", '-')
-
+        self.memmap_root_S3_object_name = self.memmap_root_dirname +'__'+ str(datetime.datetime.now()).replace(" ", '-')
         
     def _validate_estimator(self):
         
@@ -238,7 +237,6 @@ class ConfigSetter():
 
             if self.hyperparameters is not None:
                 warnings.warn("[ hyperparameters ] is not being used by [ estimator ].")
-
         
     def _validate_target_name(self):
         
