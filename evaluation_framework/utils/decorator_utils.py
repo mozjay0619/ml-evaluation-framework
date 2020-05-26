@@ -1,5 +1,6 @@
 import functools
 import time
+import os
 
 def failed_method_retry(method, max_retries=5):
     """This is a decorator for allowing certain methods to retry itself in cases of
@@ -36,3 +37,25 @@ def failed_method_retry(method, max_retries=5):
             raise error
     
     return failed_method_retried
+
+
+def yarn_directory_normalizer(base_method):
+    
+    @functools.wraps(base_method)
+    def method_modifier(ip_addr, *args, **kwargs):
+        
+        try:
+            cwd = os.getcwd()
+            
+            if os.path.split(cwd)[-1].find('container_')==0:
+                app_root_dir = os.path.split(cwd)[0:-1][0]
+                
+                if os.path.split(app_root_dir)[-1].find('application_')==0:
+                    os.chdir(app_root_dir)
+                    
+            return base_method(*args, **kwargs)
+        
+        except Exception as e:
+            raise type(e)(str(e) + ' from {} method'.format(base_method.__name__))
+        
+    return method_modifier

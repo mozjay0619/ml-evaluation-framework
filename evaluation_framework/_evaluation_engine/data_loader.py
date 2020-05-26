@@ -2,20 +2,16 @@ from evaluation_framework.utils.pandas_utils import cast_datetime2int64
 from evaluation_framework.utils.pandas_utils import cast_int64_2datetime
 from evaluation_framework.utils.pandas_utils import encode_str2bytes
 from evaluation_framework.utils.pandas_utils import encode_date_sequence
-
 from evaluation_framework.utils.s3_utils import s3_upload_object
 from evaluation_framework.utils.s3_utils import s3_download_object
 from evaluation_framework.utils.s3_utils import s3_upload_zip_dir
 from evaluation_framework.utils.s3_utils import s3_delete_object
-
 from evaluation_framework.utils.zip_utils import unzip_dir
-
 from evaluation_framework.utils.objectIO_utils import save_obj
 from evaluation_framework.utils.objectIO_utils import load_obj
-
 from evaluation_framework.utils.memmap_utils import write_memmap
 from evaluation_framework.utils.memmap_utils import read_memmap
-
+from evaluation_framework.utils.decorator_utils import yarn_directory_normalizer
 
 import os
 import shutil
@@ -45,25 +41,6 @@ def load_local_data(evaluation_manager):
             shutil.rmtree(prediction_records_dirpath)
             os.makedirs(prediction_records_dirpath)
 
-        # # again, replicate the filesys: precursor to HMF (hierarchical memmap format)
-
-        # # from _write_memmap_filesys
-        # memmap_map = dict()
-        # memmap_map['attributes'] = dict()
-        # memmap_map['groups'] = dict()  # i.e. we define the first level to be groups
-        # # memmap_map['attributes']['sorted_group_keys'] = f.get_node_attr('/', 'root_attribute').sorted_group_keys
-        # # the dict for next layer must be defined in the previous layer
-        # # would be wise to define arrays as well since a node can have both groups and arrays
-        # memmap_map['root_dirpath'] = prediction_records_dirpath
-
-        # memmap_map_filepath = os.path.join(prediction_records_dirpath, 'memmap_map')
-        # save_obj(memmap_map, memmap_map_filepath)
-
-
-
-
-
-
     memmap_map = _write_memmap_filesys(evaluation_manager, memmap_root_dirpath)
     return memmap_map
 
@@ -71,9 +48,10 @@ def upload_local_data(task_manager):
 
     memmap_root_dirpath = os.path.join(os.getcwd(), task_manager.memmap_root_dirpath)
     s3_url = task_manager.S3_path
-    object_name = task_manager.memmap_root_dirname + '.zip'
+    object_name = task_manager.memmap_root_S3_object_name + '.zip'
     s3_upload_zip_dir(memmap_root_dirpath, s3_url, object_name)
 
+@yarn_directory_normalizer
 def download_local_data(task_manager):
     """
     1. create memmap dir
@@ -81,15 +59,12 @@ def download_local_data(task_manager):
     4. graph will just use the memmap dirname to read it off from the "current pos"
 
     """
+    s3_download_object(os.getcwd(), task_manager.S3_path, task_manager.memmap_root_S3_object_name + '.zip')
 
-    s3_download_object(os.getcwd(), task_manager.S3_path, task_manager.memmap_root_dirname + '.zip')
-
-    zipped_filepath = os.path.join(os.getcwd(), task_manager.memmap_root_dirname + '.zip')
+    zipped_filepath = os.path.join(os.getcwd(), task_manager.memmap_root_S3_object_name + '.zip')
     unzip_dir(zipped_filepath, task_manager.memmap_root_dirname)
 
     if task_manager.return_predictions:
-
-        # turn this into memmap filesys too when the tool is ready
 
         prediction_records_dirpath = os.path.join(os.getcwd(), task_manager.prediction_records_dirname)
 
@@ -99,18 +74,7 @@ def download_local_data(task_manager):
             shutil.rmtree(prediction_records_dirpath)
             os.makedirs(prediction_records_dirpath)
 
-        # NOTE FOR HMF: again, replicate the filesys: precursor to HMF (hierarchical memmap format)
-
-        # from _write_memmap_filesys
-        memmap_map = dict()
-        memmap_map['attributes'] = dict()
-        memmap_map['groups'] = dict()  # i.e. we define the first level to be groups
-        # memmap_map['attributes']['sorted_group_keys'] = f.get_node_attr('/', 'root_attribute').sorted_group_keys
-        memmap_map['root_dirpath'] = prediction_records_dirpath
-
-        memmap_map_filepath = os.path.join(root_dirpath, 'memmap_map')
-        save_obj(memmap_map, memmap_map_filepath)
-
+@yarn_directory_normalizer
 def upload_remote_data(task_manager):
     """
     1. zip the prediction array directory
@@ -144,15 +108,11 @@ def _write_memmap_filesys(task_manager, root_dirpath):
     memmap_map = dict()
     memmap_map['attributes'] = dict()
     memmap_map['groups'] = dict()  # i.e. we define the first level to be groups
-    # memmap_map['attributes']['sorted_group_keys'] = f.get_node_attr('/', 'root_attribute').sorted_group_keys
     memmap_map['root_dirpath'] = root_dirpath
 
     memmap_map_filepath = os.path.join(root_dirpath, 'memmap_map')
 
     group_key_size_tuples = []
-
-    # Add a uuid column for recording purposes
-    # task_manager.numeric_types += ['specialEF_float32_UUID']
 
     for group_key, grouped_pdf in task_manager.data.groupby(by=task_manager.groupby):
 
@@ -161,9 +121,6 @@ def _write_memmap_filesys(task_manager, root_dirpath):
         if task_manager.orderby:
             grouped_pdf = grouped_pdf.sort_values(by=task_manager.orderby)
         grouped_pdf = grouped_pdf.reset_index(drop=True)
-
-        # # Add a uuid column for recording purposes
-        # grouped_pdf['specialEF_float32_UUID'] = np.arange(len(grouped_pdf)).astype(np.float32)
 
         memmap_map['groups'][group_key] = dict()
         source_dirpath = memmap_map['root_dirpath']
@@ -182,9 +139,6 @@ def _write_memmap_filesys(task_manager, root_dirpath):
 
         if task_manager.orderby:
             _write_orderby_array(task_manager, memmap_map['groups'][group_key], grouped_pdf)
-
-        # if task_manager.return_predictions:
-        #     _write_prediction_array(task_manager, memmap_map['groups'][group_key], grouped_pdf)
 
         memmap_map['groups'][group_key]['attributes']['numeric_keys'] = task_manager.numeric_types
         memmap_map['groups'][group_key]['attributes']['missing_keys'] = task_manager.missing_keys
@@ -288,32 +242,3 @@ def _write_orderby_array(task_manager, group_dict, grouped_pdf):
         group_dict['arrays'][key]['shape'], 
         array)
 
-# def _write_prediction_array(task_manager, group_dict, grouped_pdf):
-
-#     key = 'prediction_array'
-
-#     array = np.empty((len(grouped_pdf), 2)).astype(np.float32)
-#     array[:, 0] = np.arange(len(grouped_pdf))  # first column is index
-#     array[:, 1] = -1  # second column is for predictions
-#     dtype = str(array.dtype)
-#     shape = array.shape
-
-#     group_dict['arrays'][key] = dict()
-
-#     source_dirpath = group_dict['group_dirpath']
-#     group_dict['arrays'][key]['filepath'] = '__'.join((source_dirpath, key))
-#     group_dict['arrays'][key]['dtype'] = dtype
-#     group_dict['arrays'][key]['shape'] = shape
-
-#     write_memmap(
-#         group_dict['arrays'][key]['filepath'], 
-#         group_dict['arrays'][key]['dtype'], 
-#         group_dict['arrays'][key]['shape'], 
-#         array)
-
-
-
-
-
-
-    

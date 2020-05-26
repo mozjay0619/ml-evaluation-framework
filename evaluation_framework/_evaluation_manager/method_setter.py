@@ -4,14 +4,13 @@ from ..default_methods import default_model_fit
 from ..default_methods import default_model_predict
 from ..default_methods import default_evaluate_prediction
 
-
-
 import re
 import copy
 
 
 REQUIRED_METHOD_ARGUMENTS = ['preprocess_train_data', 'preprocess_test_data', 'evaluate_prediction']
 EVALUATION_OPTIONS = ['mse', 'mae', 'rmse']
+
 
 class MethodSetter():
 	
