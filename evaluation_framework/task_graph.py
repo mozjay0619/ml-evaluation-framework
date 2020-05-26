@@ -79,18 +79,12 @@ class TaskGraph():
         missing_keys = memmap_map['groups'][group_key]['attributes']['missing_keys']
         data_colnames = copy.copy(memmap_map['groups'][group_key]['attributes']['numeric_keys']) 
 
-
-
-
         filepath = os.path.join(memmap_map['root_dirpath'], memmap_map['groups'][group_key]['arrays']['numeric_types']['filepath'])
         dtype = memmap_map['groups'][group_key]['arrays']['numeric_types']['dtype']
         shape = memmap_map['groups'][group_key]['arrays']['numeric_types']['shape']
         data_arrays = [read_memmap(filepath, dtype, shape, data_idx)]
 
         for colname in missing_keys['datetime_types']:
-
-
-
         
             filepath = os.path.join(memmap_map['root_dirpath'], memmap_map['groups'][group_key]['arrays'][colname]['filepath'])
             dtype = memmap_map['groups'][group_key]['arrays'][colname]['dtype']
@@ -107,7 +101,6 @@ class TaskGraph():
             pdf.iloc[:, i-1] = pd.to_datetime(pdf.iloc[:, i-1])
             
         for colname in missing_keys['str_types']:
-
             
             filepath = os.path.join(memmap_map['root_dirpath'], memmap_map['groups'][group_key]['arrays'][colname]['filepath'])
             dtype = memmap_map['groups'][group_key]['arrays'][colname]['dtype']

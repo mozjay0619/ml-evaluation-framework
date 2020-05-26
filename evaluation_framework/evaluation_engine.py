@@ -46,6 +46,44 @@ TaskManager = namedtuple('TaskManager', TASK_REQUIRED_KEYWORDS)
 
 class EvaluationEngine():
 
+    def __init__(self, local_client_n_workers=None, local_client_threads_per_worker=None, 
+                 yarn_container_n_workers=None, yarn_container_worker_vcores=None, yarn_container_worker_memory=None,
+                 n_worker_nodes=None, use_yarn_cluster=None, use_auto_config=None, instance_type=None):
+
+        # if not (use_yarn_cluster or use_auto_config):
+
+        #     print('If ')
+
+
+
+
+
+
+        # self.use_yarn_cluster = False
+
+        # if (self.task_manager.S3_path and 
+        #     yarn_container_n_workers and 
+        #     yarn_container_worker_vcores and 
+        #     yarn_container_worker_memory and
+        #     n_worker_nodes):
+
+        #     self.use_yarn_cluster = True
+
+        # if (self.local_client_n_workers and self.local_client_threads_per_worker):
+
+
+        self.local_client_n_workers = local_client_n_workers
+        self.local_client_threads_per_worker = local_client_threads_per_worker 
+        self.yarn_container_n_workers = yarn_container_n_workers
+        self.yarn_container_worker_vcores = yarn_container_worker_vcores
+        self.yarn_container_worker_memory = yarn_container_worker_memory
+        self.n_worker_nodes = n_worker_nodes
+
+
+
+
+
+
     def run_evaluation(self, evaluation_manager):
 
         self.data = evaluation_manager.data
@@ -64,14 +102,27 @@ class EvaluationEngine():
         # need condition to open yarn or local!
         if self.task_manager.S3_path:
 
-            pass  # need to implement this on aws
+            upload_local_data(task_manager)
+
+            self.dask_client = DualClientFuture(local_client_n_workers=self.local_client_n_workers, 
+                               local_client_threads_per_worker=self.local_client_threads_per_worker, 
+                               yarn_client_n_workers=self.yarn_container_n_workers*self.n_worker_nodes, 
+                               yarn_client_worker_vcores=self.yarn_container_worker_vcores, 
+                               yarn_client_worker_memory=self.yarn_container_worker_memory)
+
+            self.dask_client.submit_per_node(download_local_data, task_manager)
+
+            num_threads = self.local_client_n_workers + self.yarn_container_n_workers*self.n_worker_nodes
+
         else:
-            self.dask_client = ClientFuture(local_client_n_workers=4, 
-                                   local_client_threads_per_worker=2)
+            self.dask_client = ClientFuture(local_client_n_workers=self.local_client_n_workers, 
+                                   local_client_threads_per_worker=self.local_client_threads_per_worker)
 
             self.dask_client.get_dashboard_link()
-            # need thread calculation: sum of available workers
-            self.taskq = MultiThreadTaskQueue(num_threads=4)
+            
+            num_threads = self.local_client_n_workers
+        
+        self.taskq = MultiThreadTaskQueue(num_threads=num_threads)
                     
         memmap_map_filepath = os.path.join(self.task_manager.memmap_root_dirpath, 'memmap_map')
         memmap_map = load_obj(memmap_map_filepath)
