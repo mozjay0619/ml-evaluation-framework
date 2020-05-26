@@ -1,5 +1,6 @@
 from dask.distributed import Client, LocalCluster
 from dask_yarn import YarnCluster
+from evaluation_framework.utils.decorator_utils import yarn_directory_normalizer
 
 import threading
 import queue
@@ -78,12 +79,13 @@ class DualClientFuture():
         self.yarn_client_n_workers = yarn_client_n_workers
         
     def submit(self, func, *args, **kwargs):
-        
+
         remainder = self.task_counter % (self.local_client_n_workers + self.yarn_client_n_workers)
         
         if remainder <= (self.local_client_n_workers-1):
-            future = self.local_client.submit(func, None, *args, **kwargs)
+            future = self.local_client.submit(func, *args, **kwargs)
         else:
+            func = yarn_directory_normalizer(func)
             future = self.yarn_client.submit(func, None, *args, **kwargs)
             
         self.task_counter += 1
@@ -107,8 +109,10 @@ class DualClientFuture():
     
     def submit_per_node(self, func, *args, **kwargs):
         
+        func = yarn_directory_normalizer(func)
+
         ip_addrs = self.get_worker_ip_addresses()
-        
+
         futures = list()
         
         for ip_addr in ip_addrs:
@@ -133,9 +137,9 @@ class ClientFuture():
                                host=host_ip)
         self.local_client = Client(address=self.local_cluster, timeout='2s') 
         
-    def submit(self, *args, **kwargs):
+    def submit(self, func, *args, **kwargs):
         
-        future = self.local_client.submit(*args, **kwargs)
+        future = self.local_client.submit(func, *args, **kwargs)
         return future.result() 
         
     def get_dashboard_link(self):

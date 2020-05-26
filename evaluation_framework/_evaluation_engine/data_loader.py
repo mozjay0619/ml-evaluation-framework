@@ -11,7 +11,6 @@ from evaluation_framework.utils.objectIO_utils import save_obj
 from evaluation_framework.utils.objectIO_utils import load_obj
 from evaluation_framework.utils.memmap_utils import write_memmap
 from evaluation_framework.utils.memmap_utils import read_memmap
-from evaluation_framework.utils.decorator_utils import yarn_directory_normalizer
 
 import os
 import shutil
@@ -51,7 +50,6 @@ def upload_local_data(task_manager):
     object_name = task_manager.memmap_root_S3_object_name + '.zip'
     s3_upload_zip_dir(memmap_root_dirpath, s3_url, object_name)
 
-@yarn_directory_normalizer
 def download_local_data(task_manager):
     """
     1. create memmap dir
@@ -74,7 +72,6 @@ def download_local_data(task_manager):
             shutil.rmtree(prediction_records_dirpath)
             os.makedirs(prediction_records_dirpath)
 
-@yarn_directory_normalizer
 def upload_remote_data(task_manager):
     """
     1. zip the prediction array directory

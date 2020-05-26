@@ -1,7 +1,6 @@
 from evaluation_framework.utils.objectIO_utils import load_obj
 from evaluation_framework.utils.memmap_utils import write_memmap
 from evaluation_framework.utils.memmap_utils import read_memmap
-from evaluation_framework.utils.decorator_utils import yarn_directory_normalizer
 
 import tables
 import copy
@@ -20,7 +19,6 @@ class TaskGraph():
         self.task_manager = task_manager
         self.cv = cv
 
-    @yarn_directory_normalizer
     def run(self, group_key, cv_split_index):   
         
         train_data, test_data, train_idx, test_idx = self.get_data(group_key, cv_split_index)
