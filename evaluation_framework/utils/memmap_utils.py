@@ -24,17 +24,3 @@ def read_memmap(filepath, dtype, shape, idx=None):
     del readonly_memmap
     return array
 
-# def overwrite_memmap(filepath, dtype, shape, array, idx=None):
-    
-#     writable_memmap = np.memmap(filepath, dtype=dtype, mode="w+", shape=shape)
-    
-#     if idx is None:
-#         writable_memmap[:] = array
-#     else:
-#         if is_nested_list(idx):
-#             writable_memmap[tuple(idx)] = array
-#         else:
-#             writable_memmap[idx] = array
-
-#     del writable_memmap
-
