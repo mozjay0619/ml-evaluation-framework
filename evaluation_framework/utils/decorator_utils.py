@@ -49,6 +49,14 @@ def yarn_directory_normalizer(base_method):
         """
         try:
             
+            cwd = os.getcwd()
+            
+            if os.path.split(cwd)[-1].find('container_')==0:
+                app_root_dir = os.path.split(cwd)[0:-1][0]
+                
+                if os.path.split(app_root_dir)[-1].find('application_')==0:
+                    os.chdir(app_root_dir)
+            
             try:
                 return base_method(*args, **kwargs, ip_addr=ip_addr)
             
@@ -59,4 +67,5 @@ def yarn_directory_normalizer(base_method):
             raise type(e)(str(e) + ' from {} method'.format(base_method.__name__))
         
     return method_modifier
+
 
