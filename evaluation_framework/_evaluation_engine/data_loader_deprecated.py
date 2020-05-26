@@ -11,7 +11,6 @@ from evaluation_framework.utils.objectIO_utils import save_obj
 from evaluation_framework.utils.objectIO_utils import load_obj
 from evaluation_framework.utils.memmap_utils import write_memmap
 from evaluation_framework.utils.memmap_utils import read_memmap
-from evaluation_framework.utils.decorator_utils import failed_method_retry
 
 import os
 import shutil
@@ -21,7 +20,6 @@ import pickle
 import numpy as np
 
 
-@failed_method_retry
 def load_local_data(evaluation_manager):
 
     memmap_root_dirpath = os.path.join(os.getcwd(), evaluation_manager.memmap_root_dirname)
@@ -52,7 +50,6 @@ def upload_local_data(task_manager):
     object_name = task_manager.memmap_root_S3_object_name + '.zip'
     s3_upload_zip_dir(memmap_root_dirpath, s3_url, object_name)
 
-
 def download_local_data(task_manager):
     """
     1. create memmap dir
@@ -64,13 +61,6 @@ def download_local_data(task_manager):
 
     zipped_filepath = os.path.join(os.getcwd(), task_manager.memmap_root_S3_object_name + '.zip')
     unzip_dir(zipped_filepath, task_manager.memmap_root_dirname)
-
-    # update memmap_map with new root_dir
-    updated_memmap_map_root_dirpath = os.path.join(os.getcwd(), task_manager.memmap_root_dirname)
-    memmap_map_filepath = os.path.join(updated_memmap_map_root_dirpath, 'memmap_map')
-    memmap_map = load_obj(memmap_map_filepath)
-    memmap_map['root_dirpath'] = updated_memmap_map_root_dirpath
-    save_obj(memmap_map, memmap_map_filepath)
 
     if task_manager.return_predictions:
 
@@ -132,25 +122,20 @@ def _write_memmap_filesys(task_manager, root_dirpath):
         memmap_map['groups'][group_key] = dict()
         source_dirpath = memmap_map['root_dirpath']
         # memmap_map['groups'][group_key]['group_dirpath'] = '__'.join((source_dirpath, group_key))
-
-        # memmap_map['groups'][group_key]['group_dirpath'] = os.path.join(source_dirpath, group_key)  
-        memmap_map['groups'][group_key]['group_dirpath'] = group_key
-
+        memmap_map['groups'][group_key]['group_dirpath'] = os.path.join(source_dirpath, group_key)  
         # NOTE FOR HMF: the first level after root_dirpath needs to be os path join not '__'
         # NOTE FOR HMF: need a check for this for generalized self-describing memmap tool
-        # NOTE FOR HMF FROM DUAL CLIENT PERSPECTIVE: we want to leave the root_dirpath flexible
-        # so for the first group level, we need to start a new path so we can join with an updated root_dirpath later
         memmap_map['groups'][group_key]['attributes'] = dict()
         memmap_map['groups'][group_key]['arrays'] = dict()  # i.e. we define the second level to be arrays
         
         # NOTE FOR HMF: later, develop this into recursive function and a generalized open source tool
 
-        _write_datetime_types(task_manager, memmap_map, group_key, grouped_pdf)
-        _write_str_types(task_manager, memmap_map, group_key, grouped_pdf)
-        _write_numeric_types(task_manager, memmap_map, group_key, grouped_pdf)
+        _write_datetime_types(task_manager, memmap_map['groups'][group_key], grouped_pdf)
+        _write_str_types(task_manager, memmap_map['groups'][group_key], grouped_pdf)
+        _write_numeric_types(task_manager, memmap_map['groups'][group_key], grouped_pdf)
 
         if task_manager.orderby:
-            _write_orderby_array(task_manager, memmap_map, group_key, grouped_pdf)
+            _write_orderby_array(task_manager, memmap_map['groups'][group_key], grouped_pdf)
 
         memmap_map['groups'][group_key]['attributes']['numeric_keys'] = task_manager.numeric_types
         memmap_map['groups'][group_key]['attributes']['missing_keys'] = task_manager.missing_keys
@@ -163,7 +148,7 @@ def _write_memmap_filesys(task_manager, root_dirpath):
 
     return memmap_map
 
-def _write_datetime_types(task_manager, memmap_map, group_key, grouped_pdf):
+def _write_datetime_types(task_manager, group_dict, grouped_pdf):
 
     for key in task_manager.missing_keys['datetime_types']:
 
@@ -172,25 +157,22 @@ def _write_datetime_types(task_manager, memmap_map, group_key, grouped_pdf):
         dtype = str(array.dtype)
         shape = array.shape
 
-        memmap_map['groups'][group_key]['arrays'][key] = dict()  # each array object is a dict as well for memmap case, unlike self documenting hdf5
+        group_dict['arrays'][key] = dict()  # each array object is a dict as well for memmap case, unlike self documenting hdf5
 
-        source_dirpath = memmap_map['groups'][group_key]['group_dirpath']
-        filepath = '__'.join((source_dirpath, key))
-        memmap_map['groups'][group_key]['arrays'][key]['filepath'] = filepath
-        memmap_map['groups'][group_key]['arrays'][key]['dtype'] = dtype
-        memmap_map['groups'][group_key]['arrays'][key]['shape'] = shape
+        source_dirpath = group_dict['group_dirpath']
+        group_dict['arrays'][key]['filepath'] = '__'.join((source_dirpath, key))
+        group_dict['arrays'][key]['dtype'] = dtype
+        group_dict['arrays'][key]['shape'] = shape
 
         # later, develop this into recursive function and a generalized open source tool
 
         write_memmap(
-            os.path.join(
-                memmap_map['root_dirpath'], 
-                memmap_map['groups'][group_key]['arrays'][key]['filepath']), 
-            memmap_map['groups'][group_key]['arrays'][key]['dtype'], 
-            memmap_map['groups'][group_key]['arrays'][key]['shape'], 
+            group_dict['arrays'][key]['filepath'], 
+            group_dict['arrays'][key]['dtype'], 
+            group_dict['arrays'][key]['shape'], 
             array)
 
-def _write_str_types(task_manager, memmap_map, group_key, grouped_pdf):
+def _write_str_types(task_manager, group_dict, grouped_pdf):
 
     for key in task_manager.missing_keys['str_types']:
 
@@ -198,23 +180,20 @@ def _write_str_types(task_manager, memmap_map, group_key, grouped_pdf):
         dtype = str(array.dtype)
         shape = array.shape
 
-        memmap_map['groups'][group_key]['arrays'][key] = dict()  # each array object is a dict as well for memmap case, unlike self documenting hdf5
+        group_dict['arrays'][key] = dict()  # each array object is a dict as well for memmap case, unlike self documenting hdf5
 
-        source_dirpath = memmap_map['groups'][group_key]['group_dirpath']
-        filepath = '__'.join((source_dirpath, key))
-        memmap_map['groups'][group_key]['arrays'][key]['filepath'] = filepath
-        memmap_map['groups'][group_key]['arrays'][key]['dtype'] = dtype
-        memmap_map['groups'][group_key]['arrays'][key]['shape'] = shape
+        source_dirpath = group_dict['group_dirpath']
+        group_dict['arrays'][key]['filepath'] = '__'.join((source_dirpath, key))
+        group_dict['arrays'][key]['dtype'] = dtype
+        group_dict['arrays'][key]['shape'] = shape
 
         write_memmap(
-            os.path.join(
-                memmap_map['root_dirpath'], 
-                memmap_map['groups'][group_key]['arrays'][key]['filepath']), 
-            memmap_map['groups'][group_key]['arrays'][key]['dtype'], 
-            memmap_map['groups'][group_key]['arrays'][key]['shape'], 
+            group_dict['arrays'][key]['filepath'], 
+            group_dict['arrays'][key]['dtype'], 
+            group_dict['arrays'][key]['shape'], 
             array)
 
-def _write_numeric_types(task_manager, memmap_map, group_key, grouped_pdf):
+def _write_numeric_types(task_manager, group_dict, grouped_pdf):
 
     key = 'numeric_types'
 
@@ -226,23 +205,20 @@ def _write_numeric_types(task_manager, memmap_map, group_key, grouped_pdf):
     dtype = str(array.dtype)
     shape = array.shape
 
-    memmap_map['groups'][group_key]['arrays'][key] = dict()
+    group_dict['arrays'][key] = dict()
 
-    source_dirpath = memmap_map['groups'][group_key]['group_dirpath']
-    filepath = '__'.join((source_dirpath, key))
-    memmap_map['groups'][group_key]['arrays'][key]['filepath'] = filepath
-    memmap_map['groups'][group_key]['arrays'][key]['dtype'] = dtype
-    memmap_map['groups'][group_key]['arrays'][key]['shape'] = shape
+    source_dirpath = group_dict['group_dirpath']
+    group_dict['arrays'][key]['filepath'] = '__'.join((source_dirpath, key))
+    group_dict['arrays'][key]['dtype'] = dtype
+    group_dict['arrays'][key]['shape'] = shape
 
     write_memmap(
-        os.path.join(
-            memmap_map['root_dirpath'], 
-            memmap_map['groups'][group_key]['arrays'][key]['filepath']), 
-        memmap_map['groups'][group_key]['arrays'][key]['dtype'], 
-        memmap_map['groups'][group_key]['arrays'][key]['shape'], 
+        group_dict['arrays'][key]['filepath'], 
+        group_dict['arrays'][key]['dtype'], 
+        group_dict['arrays'][key]['shape'], 
         array)
 
-def _write_orderby_array(task_manager, memmap_map, group_key, grouped_pdf):
+def _write_orderby_array(task_manager, group_dict, grouped_pdf):
 
     key = 'orderby_array'
 
@@ -250,19 +226,16 @@ def _write_orderby_array(task_manager, memmap_map, group_key, grouped_pdf):
     dtype = str(array.dtype)
     shape = array.shape
 
-    memmap_map['groups'][group_key]['arrays'][key] = dict()
+    group_dict['arrays'][key] = dict()
 
-    source_dirpath = memmap_map['groups'][group_key]['group_dirpath']
-    filepath = '__'.join((source_dirpath, key))
-    memmap_map['groups'][group_key]['arrays'][key]['filepath'] = filepath
-    memmap_map['groups'][group_key]['arrays'][key]['dtype'] = dtype
-    memmap_map['groups'][group_key]['arrays'][key]['shape'] = shape
+    source_dirpath = group_dict['group_dirpath']
+    group_dict['arrays'][key]['filepath'] = '__'.join((source_dirpath, key))
+    group_dict['arrays'][key]['dtype'] = dtype
+    group_dict['arrays'][key]['shape'] = shape
 
     write_memmap(
-        os.path.join(
-            memmap_map['root_dirpath'], 
-            memmap_map['groups'][group_key]['arrays'][key]['filepath']), 
-        memmap_map['groups'][group_key]['arrays'][key]['dtype'], 
-        memmap_map['groups'][group_key]['arrays'][key]['shape'], 
+        group_dict['arrays'][key]['filepath'], 
+        group_dict['arrays'][key]['dtype'], 
+        group_dict['arrays'][key]['shape'], 
         array)
 

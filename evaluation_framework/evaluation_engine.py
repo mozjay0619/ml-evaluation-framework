@@ -80,7 +80,7 @@ class EvaluationEngine():
 
             if self.task_manager.orderby:
 
-                filepath = memmap_map['groups'][group_key]['arrays']['orderby_array']['filepath']
+                filepath = os.path.join(memmap_map['root_dirpath'], memmap_map['groups'][group_key]['arrays']['orderby_array']['filepath'])
                 dtype = memmap_map['groups'][group_key]['arrays']['orderby_array']['dtype']
                 shape = memmap_map['groups'][group_key]['arrays']['orderby_array']['shape']
                 group_ordered_array = read_memmap(filepath, dtype, shape)
