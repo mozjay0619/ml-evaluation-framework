@@ -1,5 +1,3 @@
-
-
 from ..utils.pandas_utils import is_date_str_type
 from ..utils.pandas_utils import is_not_date_str_type
 from ..utils.pandas_utils import is_numeric_type
@@ -7,10 +5,8 @@ from ..utils.pandas_utils import is_datetime_type
 from ..utils.pandas_utils import is_float32_type
 from ..utils.pandas_utils import cast_datetime2int64
 from ..utils.pandas_utils import cast_numeric2float32
-
 from ..utils.data_structure_utils import get_merged_list_from_dict_list_values
 from ..utils.data_structure_utils import dict_is_nested
-
 from ..utils.datetime_utils import check_date_format
 
 import inspect
@@ -19,6 +15,7 @@ import numpy as np
 import os
 import warnings
 import shutil
+import datetime
 
 
 ORDERED_CV_SCHEMES = ['date_rolling_window']
@@ -213,7 +210,10 @@ class ConfigSetter():
         self.memmap_root_dirpath = os.path.join(self.local_directory_path, self.memmap_root_dirname)
 
     def _validate_s3_path(self):
-        pass
+
+        current_time = str(datetime.datetime.now()).replace(" ", '-')
+        self.memmap_root_S3_object_name = memmap_root_dirname +'__'+ str(datetime.datetime.now()).replace(" ", '-')
+
         
     def _validate_estimator(self):
         

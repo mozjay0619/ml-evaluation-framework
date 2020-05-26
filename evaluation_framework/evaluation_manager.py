@@ -28,3 +28,5 @@ class EvaluationManager():
         
         for k, v in source_obj.__dict__.items():
             self.__dict__[k] = v
+
+            

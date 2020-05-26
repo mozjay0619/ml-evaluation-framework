@@ -77,14 +77,14 @@ class DualClientFuture():
         self.task_counter = 0
         self.yarn_client_n_workers = yarn_client_n_workers
         
-    def submit(self, *args, **kwargs):
+    def submit(self, func, *args, **kwargs):
         
         remainder = self.task_counter % (self.local_client_n_workers + self.yarn_client_n_workers)
         
         if remainder <= (self.local_client_n_workers-1):
-            future = self.local_client.submit(*args, **kwargs)
+            future = self.local_client.submit(func, None, *args, **kwargs)
         else:
-            future = self.yarn_client.submit(*args, **kwargs)
+            future = self.yarn_client.submit(func, None, *args, **kwargs)
             
         self.task_counter += 1
         
@@ -99,18 +99,20 @@ class DualClientFuture():
             time.sleep(0.1)
             
         ip_addrs = set()
+        
         for yarn_container_object in yarn_container_objects:
             ip_addrs.add(yarn_container_object.yarn_node_http_address.split('.')[0].replace('-', '.')[3:])
         
         return list(ip_addrs)
     
-    def submit_yarnworkers(self, *args, **kwargs):
+    def submit_per_node(self, func, *args, **kwargs):
         
         ip_addrs = self.get_worker_ip_addresses()
         
         futures = list()
+        
         for ip_addr in ip_addrs:
-            futures.append(self.yarn_client.submit(*args, **kwargs, workers=ip_addr))
+            futures.append(self.yarn_client.submit(func, ip_addr, *args, **kwargs, workers=ip_addr))
         
         return self.yarn_client.gather(futures)
     
