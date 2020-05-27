@@ -1,5 +1,5 @@
 
-__version__ = "0.0.b15"
+__version__ = "0.0.b16"
 
 
 
@@ -31,6 +31,6 @@ from evaluation_framework.utils.memmap_utils import read_memmap
 from .evaluation_engine import EvaluationEngine
 
 __all__ = [
-	"ConfigSetter",
-	"DataLoader",
+	"EvaluationManager",
+	"EvaluationEngine",
 	]

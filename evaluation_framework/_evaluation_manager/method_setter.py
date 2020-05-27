@@ -35,29 +35,11 @@ class MethodSetter():
 		self.store_prediction = store_prediction
 		self.evaluate_prediction = evaluate_prediction
 		
-
 		print("\u2714 Checking methods requirements...    ", end="", flush=True)
 		if not self.passed_arguments_requirements():
 			return False
 		else:
 			print('Passed!')
-
-		# self.sample_train_pdf, self.sample_test_pdf = self._get_sample_pdf(self.config_setter)
-		
-		
-		# print("Checking configs requirements...	 ", end="", flush=True)
-			
-		# if not self.passed_arguments_requirements():
-		# 	print('Failed!')
-		# 	self.tell_required_arguments()
-		# 	return False
-
-		# print("Passed!")
-
-		
-
-
-
 
 		print("\u2714 Checking methods validity...        ", end="", flush=True)
 		if not self.passed_arguments_validity():
@@ -66,8 +48,6 @@ class MethodSetter():
 			print('Passed!')
 		
 		return True
-		
-	
 	
 	def passed_arguments_requirements(self):
 
@@ -156,10 +136,6 @@ class MethodSetter():
 			
 			self.evaluate_prediction = default_evaluate_prediction
 			return
-	
-	
-	
-
 		
 	def _num_types_needed(self):
 
@@ -199,47 +175,6 @@ class MethodSetter():
 		else:
 			raise ValueError('not included! {}'.format(missing_keys))
 
-
-
-	# def _get_sample_pdf(self, config_setter):
-
-	# 	# do the groupby size ordering here! and get the smallest one!
-	# 	# by the str! that we can use it later
-
-	# 	# asdf
-
-	# 	if config_setter.groupby:
-	# 		for group_key, grouped_pdf in config_setter.data.groupby(config_setter.groupby):
-				
-	# 			n = min(len(grouped_pdf), 1000)
-	# 			train_n = int(n * 0.75)
-				
-	# 			if config_setter.orderby:
-	# 				sample_pdf = grouped_pdf.sort_values(by=config_setter.orderby).iloc[0:n]
-	# 				sample_train_pdf = sample_pdf.iloc[0:train_n]
-	# 				sample_test_pdf = sample_pdf.iloc[train_n:]
-					
-	# 			sample_pdf = grouped_pdf.iloc[0:n]
-	# 			sample_train_pdf = sample_pdf.iloc[0:train_n]
-	# 			sample_test_pdf = sample_pdf.iloc[train_n:]
-	# 			break
-				
-	# 	else:
-			
-	# 		n = min(len(config_setter.data), 1000)
-	# 		train_n = int(n * 0.75)
-			
-	# 		if config_setter.orderby:
-	# 			sample_pdf = config_setter.data.sort_values(by=config_setter.orderby).iloc[0:n]
-	# 			sample_train_pdf = sample_pdf.iloc[0:train_n]
-	# 			sample_test_pdf = sample_pdf.iloc[train_n:]
-				
-	# 		sample_pdf = config_setter.data.iloc[0:n]
-	# 		sample_train_pdf = sample_pdf.iloc[0:train_n]
-	# 		sample_test_pdf = sample_pdf.iloc[train_n:]
-				
-	# 	return sample_train_pdf, sample_test_pdf
-
 	def _get_sample_pdf(self, config_setter):
 
 		# do the groupby size ordering here! and get the smallest one!
@@ -275,8 +210,6 @@ class MethodSetter():
 
 		return sample_train_pdf, sample_test_pdf
 
-
-			
 	def key_error_catcher(self, f, *args, **kwargs):
 	
 		try:

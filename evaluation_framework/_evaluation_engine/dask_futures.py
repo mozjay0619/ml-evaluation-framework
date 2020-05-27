@@ -135,7 +135,7 @@ class DualClientFuture():
         
         return self.yarn_client.gather(futures)
     
-    def get_dashboard_links(self):
+    def get_dashboard_link(self):
         
         print('local cluster: ', self.local_cluster.dashboard_link)
         print('yarn cluster:  ', self.yarn_cluster.dashboard_link)
