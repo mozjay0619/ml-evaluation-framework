@@ -94,6 +94,7 @@ class EvaluationEngine():
         
         print("Preparing local data")
         memmap_map = load_local_data(evaluation_manager)
+        print('Finished preparing local data')
 
         # evaluation_manager is too bulky to travel across network
         self.task_manager = TaskManager(
@@ -103,15 +104,23 @@ class EvaluationEngine():
         # need condition to open yarn or local!
         if self.task_manager.S3_path:
 
+            print('Uploading local data to S3')
             upload_local_data(self.task_manager)
+            print('Completed!')
 
+            print('Starting dask client')
             self.dask_client = DualClientFuture(local_client_n_workers=self.local_client_n_workers, 
                                local_client_threads_per_worker=self.local_client_threads_per_worker, 
                                yarn_client_n_workers=self.yarn_container_n_workers*self.n_worker_nodes, 
                                yarn_client_worker_vcores=self.yarn_container_worker_vcores, 
                                yarn_client_worker_memory=self.yarn_container_worker_memory)
+            print('Completed!')
 
+            self.dask_client.get_dashboard_links()
+
+            print('Preparing remote data')
             self.dask_client.submit_per_node(download_local_data, self.task_manager)
+            print('Completed!')
 
             num_threads = self.local_client_n_workers + self.yarn_container_n_workers*self.n_worker_nodes
 
@@ -128,6 +137,7 @@ class EvaluationEngine():
         memmap_map_filepath = os.path.join(self.task_manager.memmap_root_dirpath, 'memmap_map')
         memmap_map = load_obj(memmap_map_filepath)
         
+        print('Starting evaluations!')
         for group_key in memmap_map['attributes']['sorted_group_keys']:
 
             if self.task_manager.orderby:
