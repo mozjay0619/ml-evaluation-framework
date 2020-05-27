@@ -20,12 +20,25 @@ class TaskGraph():
         self.cv = cv
 
     def run(self, group_key, cv_split_index):   
-        
-        train_data, test_data, train_idx, test_idx = self.get_data(group_key, cv_split_index)
-        prediction_result, evaluation_result = self.task_graph(train_data, test_data, group_key)
 
-        if self.task_manager.return_predictions:
-            self.record_predictions(group_key, cv_split_index, prediction_result, test_data, test_idx)
+        attempts = 0
+
+        while attempts < 3:
+
+            try:
+                
+                train_data, test_data, train_idx, test_idx = self.get_data(group_key, cv_split_index)
+                prediction_result, evaluation_result = self.task_graph(train_data, test_data, group_key)
+
+                if self.task_manager.return_predictions:
+                    self.record_predictions(group_key, cv_split_index, prediction_result, test_data, test_idx)
+
+                break
+
+            except:
+
+                attempts += 1
+                
 
         return (group_key, cv_split_index, evaluation_result, len(prediction_result))
 
@@ -142,9 +155,18 @@ class TaskGraph():
         filename = '__'.join((group_key, str(cv_split_index))) + '.npy'
         filepath = os.path.join(os.getcwd(), self.task_manager.prediction_records_dirname, filename)
 
-        try:
-            np.save(filepath, predictions_array)
-        except:
-            pass
+        # try:
+        np.save(filepath, predictions_array)
+        np.load(filepath)
+        # except:
+        #     pass
             # need to pass some value to indicate failure instead of unavailability!
+
+
+
+
+
+
+
+
 
