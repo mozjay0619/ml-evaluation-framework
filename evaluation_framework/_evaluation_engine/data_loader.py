@@ -52,7 +52,6 @@ def upload_local_data(task_manager):
     object_name = task_manager.memmap_root_S3_object_name + '.zip'
     s3_upload_zip_dir(memmap_root_dirpath, s3_url, object_name)
 
-
 def download_local_data(task_manager):
     """
     1. create memmap dir
@@ -100,7 +99,6 @@ def upload_remote_data(task_manager, ip_addr):
     s3_upload_zip_dir(source_dirpath, s3_url, object_name)
     
     return object_name
-    
 
 def download_remote_data(task_manager):
     """
@@ -116,7 +114,6 @@ def download_remote_data(task_manager):
         zipped_filepath = os.path.join(os.getcwd(), prediction_arrays_zip)
         unzip_dir(zipped_filepath, os.path.join(os.getcwd(), 'prediction_arrays'))
         
-
 def _write_memmap_filesys(task_manager, root_dirpath):
     """memmap mimicking hdf5 filesystem. 
     root_dirpath/

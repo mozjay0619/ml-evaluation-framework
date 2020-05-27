@@ -43,7 +43,7 @@ def yarn_directory_normalizer(base_method):
     
     @functools.wraps(base_method)
     def method_modifier(ip_addr, *args, **kwargs):
-        """The placeholder is for [ submit_per_node ] method in Dask Yarn dual client mode. 
+        """The ip_addr is for [ submit_per_node ] method in Dask Yarn dual client mode. 
         We pass in different arguments so that Dask's work assignment policy does not override
         the desired behavior of allocating the works across different host ip addresses.
         """
