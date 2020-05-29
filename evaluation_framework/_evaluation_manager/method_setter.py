@@ -139,11 +139,18 @@ class MethodSetter():
 		
 	def _num_types_needed(self):
 
+		sample_train_pdf, sample_test_pdf = self._get_sample_pdf(self.config_setter.data)
 
 		included_colnames = copy.copy(self.config_setter.numeric_types)
-		missing_keys = self.key_error_catcher(self.preprocess_train_data, 
-										self.config_setter.data[included_colnames], 
-										self.config_setter.user_configs)
+		train_missing_keys = self.key_error_catcher(
+			self.preprocess_train_data, 
+			self.sample_train_pdf[included_colnames], 
+			self.config_setter.user_configs)
+		test_missing_keys = self.key_error_catcher(
+			self.preprocess_test_data, 
+			self.sample_test_pdf[included_colnames], 
+			self.config_setter.user_configs)
+		missing_keys = train_missing_keys + test_missing_keys
 		
 		if len(missing_keys)==0:
 			return 1
@@ -153,9 +160,15 @@ class MethodSetter():
 		if len(missing_keys)>0:
 			
 			included_colnames += self.config_setter.datetime_types
-			missing_keys = self.key_error_catcher(self.preprocess_train_data, 
-									  self.config_setter.data[included_colnames], 
-									  self.config_setter.user_configs)
+			train_missing_keys = self.key_error_catcher(
+				self.preprocess_train_data, 
+				self.sample_train_pdf[included_colnames], 
+				self.config_setter.user_configs)
+			test_missing_keys = self.key_error_catcher(
+				self.preprocess_test_data, 
+				self.sample_test_pdf[included_colnames], 
+				self.config_setter.user_configs)
+			missing_keys = train_missing_keys + test_missing_keys
 			
 		if len(missing_keys)==0:
 			return 2
@@ -166,9 +179,16 @@ class MethodSetter():
 		if len(missing_keys)>0:
 			
 			included_colnames += self.config_setter.str_types
-			missing_keys = self.key_error_catcher(self.preprocess_train_data, 
-									  self.config_setter.data[included_colnames], 
-									  self.config_setter.user_configs)
+			train_missing_keys = self.key_error_catcher(
+				self.preprocess_train_data, 
+				self.sample_train_pdf[included_colnames], 
+				self.config_setter.user_configs)
+			test_missing_keys = self.key_error_catcher(
+				self.preprocess_test_data, 
+				self.sample_test_pdf[included_colnames], 
+				self.config_setter.user_configs)
+			missing_keys = train_missing_keys + test_missing_keys
+			
 		if len(missing_keys)==0:
 			return 3
 		
@@ -186,8 +206,6 @@ class MethodSetter():
 			
 			sample_pdf = config_setter.data[config_setter.data[config_setter.groupby]==sample_group]
 			
-	#		 if config_setter.orderby:
-	#			 sample_pdf = grouped_pdf.sort_values(by=config_setter.orderby).iloc[0:n]
 			n = min(len(sample_pdf), 1000)
 			train_n = int(n * 0.75)
 			
@@ -198,11 +216,6 @@ class MethodSetter():
 
 			n = min(len(config_setter.data), 1000)
 			train_n = int(n * 0.75)
-
-	#		 if config_setter.orderby:
-	#			 sample_pdf = config_setter.data.sort_values(by=config_setter.orderby).iloc[0:n]
-	#			 sample_train_pdf = sample_pdf.iloc[0:train_n]
-	#			 sample_test_pdf = sample_pdf.iloc[train_n:]
 
 			sample_pdf = config_setter.data.iloc[0:n]
 			sample_train_pdf = sample_pdf.iloc[0:train_n]

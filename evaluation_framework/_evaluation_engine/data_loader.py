@@ -15,7 +15,6 @@ from evaluation_framework.utils.decorator_utils import failed_method_retry
 
 import os
 import shutil
-import tables
 from collections import namedtuple
 import pickle
 import numpy as np
