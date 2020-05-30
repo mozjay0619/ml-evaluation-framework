@@ -2,7 +2,6 @@ from evaluation_framework.utils.objectIO_utils import load_obj
 from evaluation_framework.utils.memmap_utils import write_memmap
 from evaluation_framework.utils.memmap_utils import read_memmap
 
-import tables
 import copy
 import numpy as np
 import pandas as pd
