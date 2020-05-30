@@ -145,7 +145,7 @@ class EvaluationEngine():
 
         self.data = evaluation_manager.data
 
-        if self.use_yarn_cluster and self.evaluation_manager.S3_path is None:
+        if self.use_yarn_cluster and evaluation_manager.S3_path is None:
             raise ValueError('if [ use_yarn_cluster ] is set to True, you must provide [ S3_path ].')
 
         os.makedirs(evaluation_manager.local_directory_path)
