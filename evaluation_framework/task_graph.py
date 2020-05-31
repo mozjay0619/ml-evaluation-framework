@@ -37,7 +37,12 @@ class TaskGraph():
             except:
 
                 attempts += 1
-                
+
+        train_data, test_data, train_idx, test_idx = self.get_data(group_key, cv_split_index)
+        prediction_result, evaluation_result = self.task_graph(train_data, test_data, group_key)
+
+        if self.task_manager.return_predictions:
+            self.record_predictions(group_key, cv_split_index, prediction_result, test_data, test_idx)
 
         return (group_key, cv_split_index, evaluation_result, len(prediction_result))
 
