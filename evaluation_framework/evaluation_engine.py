@@ -77,7 +77,8 @@ class EvaluationEngine():
 
     def __init__(self, local_client_n_workers=None, local_client_threads_per_worker=None, 
                  yarn_container_n_workers=None, yarn_container_worker_vcores=None, yarn_container_worker_memory=None,
-                 n_worker_nodes=None, use_yarn_cluster=None, use_auto_config=None, instance_type=None, parallelize=True):
+                 n_worker_nodes=None, use_yarn_cluster=None, use_auto_config=None, instance_type=None, parallelize=True,
+                 verbose=True):
 
         self.parallelize = parallelize
         
@@ -143,6 +144,8 @@ class EvaluationEngine():
         self.yarn_container_worker_memory = yarn_container_worker_memory
         self.n_worker_nodes = n_worker_nodes
 
+        self.verbose = verbose
+
     def run_evaluation(self, evaluation_manager):
 
         self.data = evaluation_manager.data
@@ -193,6 +196,9 @@ class EvaluationEngine():
             num_threads = self.local_client_n_workers
         
         self.taskq = MultiThreadTaskQueue(num_threads=num_threads)
+
+        if self.verbose:
+            print('thread size: {}'.format(num_threads))
                     
         memmap_map_filepath = os.path.join(self.task_manager.memmap_root_dirpath, 'memmap_map')
         memmap_map = load_obj(memmap_map_filepath)
