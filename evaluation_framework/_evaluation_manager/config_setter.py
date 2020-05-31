@@ -163,6 +163,8 @@ class ConfigSetter():
 
     def _validate_return_predictions(self):
 
+        self.prediction_records_dirname = None
+
         if self.return_predictions is None:
             self.return_predictions = False
 
