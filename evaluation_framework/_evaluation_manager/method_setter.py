@@ -25,6 +25,9 @@ class MethodSetter():
 					preprocess_train_data="", preprocess_test_data="",
 					model_fit=None, model_predict=None,
 					store_prediction=None, evaluate_prediction="", **kwargs):
+
+		if config_setter.groupby is None:
+			config_setter.groupby = config_setter.dummy_region_uuid
 		
 		self.config_setter = config_setter
 		self.preprocess_train_data = preprocess_train_data
