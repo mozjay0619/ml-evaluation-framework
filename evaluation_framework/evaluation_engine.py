@@ -77,7 +77,9 @@ class EvaluationEngine():
 
     def __init__(self, local_client_n_workers=None, local_client_threads_per_worker=None, 
                  yarn_container_n_workers=None, yarn_container_worker_vcores=None, yarn_container_worker_memory=None,
-                 n_worker_nodes=None, use_yarn_cluster=None, use_auto_config=None, instance_type=None):
+                 n_worker_nodes=None, use_yarn_cluster=None, use_auto_config=None, instance_type=None, parallelize=True):
+
+        self.parallelize = parallelize
         
         if (local_client_n_workers is not None and 
             local_client_threads_per_worker is not None):
@@ -216,7 +218,11 @@ class EvaluationEngine():
                 task_graph = TaskGraph(self.task_manager, cv)
 
                 for i in range(n_splits):
-                    self.taskq.put_task(self.dask_client.submit, task_graph.run, group_key, i)
+
+                    if self.parallelize:
+                        self.taskq.put_task(self.dask_client.submit, task_graph.run, group_key, i)
+                    else:
+                        task_graph.run(group_key, i)
 
             else:
                 pass  # normal cross validations
