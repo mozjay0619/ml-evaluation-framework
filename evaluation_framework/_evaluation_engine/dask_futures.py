@@ -101,20 +101,35 @@ class DualClientFuture():
             print('total n workers: {}'.format(self.local_client_n_workers + self.yarn_client_n_workers))
 
         remainder = self.task_counter % (self.local_client_n_workers + self.yarn_client_n_workers)
+
+
+
         
-        if remainder <= (self.local_client_n_workers-1):
+        # if remainder <= (self.local_client_n_workers-1):
 
-            if self.verbose==True:
-                print('remainder: {}, n_local_worker: {}, running on local'.format(remainder, self.local_client_n_workers))
+        #     if self.verbose==True:
+        #         print('remainder: {}, n_local_worker: {}, running on local'.format(remainder, self.local_client_n_workers))
 
-            future = self.local_client.submit(func, *args, **kwargs)
-        else:
+        #     future = self.local_client.submit(func, *args, **kwargs)
+        # else:
 
-            if self.verbose==True:
-                print('remainder: {}, n_local_worker: {}, running on remote'.format(remainder, self.local_client_n_workers))
+        #     if self.verbose==True:
+        #         print('remainder: {}, n_local_worker: {}, running on remote'.format(remainder, self.local_client_n_workers))
+
+        #     func = yarn_directory_normalizer(func)
+        #     future = self.yarn_client.submit(func, None, *args, **kwargs)
+
+
+        if remainder <= (self.yarn_client_n_workers-1):
 
             func = yarn_directory_normalizer(func)
             future = self.yarn_client.submit(func, None, *args, **kwargs)
+
+        else:
+
+            future = self.local_client.submit(func, *args, **kwargs)
+
+
             
         self.task_counter += 1
         
