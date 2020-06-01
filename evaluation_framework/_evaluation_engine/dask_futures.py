@@ -78,7 +78,7 @@ class DualClientFuture():
         self.local_client_n_workers = local_client_n_workers
         self.yarn_client_n_workers = yarn_client_n_workers
         
-        self.task_counter = 0
+        self.task_counter = -1
         self.yarn_client_n_workers = yarn_client_n_workers
 
         self.verbose = verbose
@@ -99,6 +99,8 @@ class DualClientFuture():
 
         if self.verbose==True:
             print('total n workers: {}'.format(self.local_client_n_workers + self.yarn_client_n_workers))
+
+        self.task_counter += 1
 
         remainder = self.task_counter % (self.local_client_n_workers + self.yarn_client_n_workers)
 
@@ -122,16 +124,22 @@ class DualClientFuture():
 
         if remainder <= (self.yarn_client_n_workers-1):
 
+            if self.verbose==True:
+                print('remainder: {}, n_local_worker: {}, running on remote'.format(remainder, self.local_client_n_workers))
+
             func = yarn_directory_normalizer(func)
             future = self.yarn_client.submit(func, None, *args, **kwargs)
 
         else:
 
+            if self.verbose==True:
+                print('remainder: {}, n_local_worker: {}, running on local'.format(remainder, self.local_client_n_workers))
+
             future = self.local_client.submit(func, *args, **kwargs)
 
 
             
-        self.task_counter += 1
+        
         
         return future.result()
     
