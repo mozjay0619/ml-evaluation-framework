@@ -53,7 +53,6 @@ def default_model_predict(preprocessed_test_data, trained_estimator, feature_nam
     preprocessed_test_data = preprocessed_test_data.reset_index(drop=True)
     
     X = preprocessed_test_data[feature_names]
-    print(X)
     preprocessed_test_data['specialEF_float32_predictions'] = trained_estimator.predict(X)
 
     prediction_result = preprocessed_test_data[['specialEF_float32_UUID', 'specialEF_float32_predictions']]    
