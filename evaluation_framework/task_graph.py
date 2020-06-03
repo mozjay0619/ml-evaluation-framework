@@ -11,6 +11,12 @@ import os
 class TaskGraph():
     """
     The atomic task graph that is run by each dask process. 
+    
+    Design philosophies:
+    --------------------
+    1. It should be independently runnable to validate the task.
+    2. It should be independently designable only to be plugged into the Engine
+    (designable up to the data directory structure)
     """
     
     def __init__(self, task_manager, cv): 
@@ -20,31 +26,33 @@ class TaskGraph():
 
     def run(self, group_key, cv_split_index):   
 
-        attempts = 0
+        return(os.getcwd())
 
-        while attempts < 3:
+        # attempts = 0
 
-            try:
+        # while attempts < 3:
+
+        #     try:
                 
-                train_data, test_data, train_idx, test_idx = self.get_data(group_key, cv_split_index)
-                prediction_result, evaluation_result = self.task_graph(train_data, test_data, group_key)
+        #         train_data, test_data, train_idx, test_idx = self.get_data(group_key, cv_split_index)
+        #         prediction_result, evaluation_result = self.task_graph(train_data, test_data, group_key)
 
-                if self.task_manager.return_predictions:
-                    self.record_predictions(group_key, cv_split_index, prediction_result, test_data, test_idx)
+        #         if self.task_manager.return_predictions:
+        #             self.record_predictions(group_key, cv_split_index, prediction_result, test_data, test_idx)
 
-                break
+        #         break
 
-            except:
+        #     except:
 
-                attempts += 1
+        #         attempts += 1
 
-        train_data, test_data, train_idx, test_idx = self.get_data(group_key, cv_split_index)
-        prediction_result, evaluation_result = self.task_graph(train_data, test_data, group_key)
+        # train_data, test_data, train_idx, test_idx = self.get_data(group_key, cv_split_index)
+        # prediction_result, evaluation_result = self.task_graph(train_data, test_data, group_key)
 
-        if self.task_manager.return_predictions:
-            self.record_predictions(group_key, cv_split_index, prediction_result, test_data, test_idx)
+        # if self.task_manager.return_predictions:
+        #     self.record_predictions(group_key, cv_split_index, prediction_result, test_data, test_idx)
 
-        return (group_key, cv_split_index, evaluation_result, len(prediction_result))
+        # return (group_key, cv_split_index, evaluation_result, len(prediction_result))
 
     def get_data(self, group_key, cv_split_index):
 
