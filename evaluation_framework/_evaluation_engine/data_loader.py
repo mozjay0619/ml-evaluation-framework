@@ -90,9 +90,8 @@ def upload_remote_data(task_manager, ip_addr):
     """
     source_dirpath = os.path.join(os.getcwd(), 'prediction_arrays')
     
-    job_uuid = task_manager.memmap_root_S3_object_name.split('__')[-1]
     host_uuid = ip_addr.replace('.', '-')
-    object_name = 'prediction_arrays' + '__' + job_uuid + '__' + host_uuid + '.zip'
+    object_name = 'prediction_arrays' + '__' + task_manager.job_uuid + '__' + host_uuid + '.zip'
     
     s3_url = task_manager.S3_path
     s3_upload_zip_dir(source_dirpath, s3_url, object_name)
@@ -104,8 +103,7 @@ def download_remote_data(task_manager):
     1. download the prediction array zip dirs from S3
     2. unzip them and place them into the same directory
     """
-    job_uuid = task_manager.memmap_root_S3_object_name.split('__')[-1]
-    prefix_name = 'prediction_arrays' + '__' + job_uuid
+    prefix_name = 'prediction_arrays' + '__' + task_manager.job_uuid
     s3_download_object(os.getcwd(), task_manager.S3_path, prefix_name)
     tmp = os.listdir(os.getcwd())
     prediction_arrays_zips = [elem for elem in tmp if elem.startswith(prefix_name) & elem.endswith('zip')]

@@ -196,25 +196,66 @@ class ConfigSetter():
             self.user_configs = dict()
 
     def _validate_local_directory_path(self):
+        """
+        [ local_directory_path ] validation involves checking its existence. If it
+        exists, pass. If it does not exist, create one. As a convention, it is 
+        encouraged to name it as os.path.join(os.getcwd(), "evaluation_tasks")
+        [ local_directory_path ] is the root path for all subsequent evaluation tasks, 
+        including the current one. Each evaluation task is given uuid, defined by the 
+        run datetime (milliseconds). 
+        [ evaluation_task_dirpath ] is the directory for the current evaluation task. 
+        Its name is to be prefixed by "evaluation_task__{}".format(job_uuid).
+        [ job_uuid ] is the current datetime in milliseconds.  
 
-        self.overwrite = True
+        Defined fields:
+        ---------------
 
-        if os.path.exists(self.local_directory_path) and not self.overwrite:
-            raise ValueError('[ local_dirpath ] already exists. Set [ overwrite ] flag to True '
-                             'to use this directory path.')
-            
+        initial_dirpath
+        job_uuid
+        evaluation_task_dirpath
+        memmap_root_dirname
+        memmap_root_dirpath
+
+        Directory structures:
+        ---------------------
+
+        local_directory_path
+
+        |__ evaluation_task_dirname (relative) / evaluation_task_dirpath (absolute)
+
+            |__ memmap_root_dirname (relative) / memmap_root_dirpath (absolute)
+
+                |__ memmap_map
+                |__ groupA__groupA'__arrayA
+
+            |__ 
+
+        |__ evaluation_task_dirname (relative) / evaluation_task_dirpath (absolute)
+
+        Path creation sequence:
+        -----------------------
+
+        Nothing is created at [ EvaluationManager ]
+        [ evaluation_task_dirname ] directory created at [ run_evaluation ] method of [ EvaluationEngine ]
+
+        """ 
         if os.path.exists(self.local_directory_path):
-            shutil.rmtree(self.local_directory_path)
+            pass
+        else:
+            os.makedirs(self.local_directory_path)
             
         self.initial_dirpath = os.getcwd()
+        self.job_uuid = str(datetime.datetime.now()).replace(" ", '-')
+
+        self.evaluation_task_dirname = "evaluation_task__{}".format(self.job_uuid)
+        self.evaluation_task_dirpath = os.path.join(self.local_directory_path, self.evaluation_task_dirname)
         
         self.memmap_root_dirname = 'memmap_root_dir'
-        self.memmap_root_dirpath = os.path.join(self.local_directory_path, self.memmap_root_dirname)
+        self.memmap_root_dirpath = os.path.join(self.evaluation_task_dirpath, self.memmap_root_dirname)
 
     def _validate_s3_path(self):
 
-        current_time = str(datetime.datetime.now()).replace(" ", '-')
-        self.memmap_root_S3_object_name = self.memmap_root_dirname +'__'+ str(datetime.datetime.now()).replace(" ", '-')
+        self.memmap_root_S3_object_name = self.memmap_root_dirname + '__' + self.job_uuid
         
     def _validate_estimator(self):
         
