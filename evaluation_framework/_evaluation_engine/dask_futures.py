@@ -55,7 +55,7 @@ class MultiThreadTaskQueue(queue.Queue):
 class DualClientFuture():
     
     def __init__(self, local_client_n_workers, local_client_threads_per_worker,
-                 yarn_client_n_workers, yarn_client_worker_vcores, yarn_client_worker_memory, verbose=True):
+                 yarn_client_n_workers, yarn_client_worker_vcores, yarn_client_worker_memory, verbose=False):
         
         host_ip = get_host_ip_address()
         

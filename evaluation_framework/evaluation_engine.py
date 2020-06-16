@@ -286,6 +286,7 @@ class EvaluationEngine():
                 else:
                     num_physical_cores = int(INSTANCE_TYPES[instance_type]['vCPU']/2)
                     num_virtual_cores = int(INSTANCE_TYPES[instance_type]['vCPU'])
+                    available_memory = int(INSTANCE_TYPES[instance_type]['Mem'] - 2)
 
                     large_instance = num_physical_cores>=8
 
@@ -300,7 +301,9 @@ class EvaluationEngine():
                         self.yarn_container_worker_vcores = DEFAULT_LARGE_INSTANCE_WORKER_VCORES
                         self.yarn_container_n_workers = int((num_virtual_cores - 
                                                              yarn_offset)/self.yarn_container_worker_vcores)
-                        self.yarn_container_worker_memory = str(int((INSTANCE_TYPES[instance_type]['Mem'] - 
+                        self.yarn_container_worker_memory = str(int((available_memory - 
+                                                                1.5)/self.yarn_container_n_workers)) + ' GB'
+                        self.yarn_container_worker_memory = str(int((available_memory - 
                                                                 1.5)/self.yarn_container_n_workers)) + ' GB'
 
                     else:
@@ -313,20 +316,21 @@ class EvaluationEngine():
                         self.yarn_container_worker_vcores = DEFAULT_SMALL_INSTANCE_WORKER_VCORES
                         self.yarn_container_n_workers = int(max(1, num_virtual_cores - 
                                                            yarn_offset)/self.yarn_container_worker_vcores)
-                        self.yarn_container_worker_memory = str(int((INSTANCE_TYPES[instance_type]['Mem'] - 
+                        self.yarn_container_worker_memory = str(int((available_memory - 
                                                                 1.5)/self.yarn_container_n_workers)) + ' GB'
 
                 self.n_worker_nodes = n_worker_nodes
                 
-                print('[ dask configurations ]')
+                print('[ aws instance configurations ]')
                 print('instance vcores: {}'.format(INSTANCE_TYPES[instance_type]['vCPU']))
                 print('instance memory: {} GB'.format(INSTANCE_TYPES[instance_type]['Mem']))
+                print('n_worker_nodes: {}'.format(self.n_worker_nodes))
+                print('[ dask configurations ]')
                 print('local_client_n_workers: {}'.format(self.local_client_n_workers))
                 print('local_client_threads_per_worker: {}'.format(self.local_client_threads_per_worker))
                 print('yarn_container_n_workers: {}'.format(self.yarn_container_n_workers))
                 print('yarn_container_worker_vcores: {}'.format(self.yarn_container_worker_vcores))
                 print('yarn_container_worker_memory: {}'.format(self.yarn_container_worker_memory))
-                print('n_worker_nodes: {}'.format(self.n_worker_nodes))
 
             else:
                 self.use_yarn_cluster = False
