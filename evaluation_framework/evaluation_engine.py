@@ -211,9 +211,6 @@ class EvaluationEngine():
             self.dask_yarn_client = None
             
             num_threads = self.local_client_n_workers
-            
-            print('\n[ dashboard link ]')
-            self.dask_client.get_dashboard_link()
         
         self.taskq = MultiThreadTaskQueue(num_threads=num_threads)
         
