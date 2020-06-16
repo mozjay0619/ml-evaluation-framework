@@ -18,6 +18,7 @@ import pandas as pd
 import numpy as np
 from collections import namedtuple
 import psutil
+import shutil
 
 
 INSTANCE_TYPES = {
@@ -93,8 +94,8 @@ class EvaluationEngine():
             local_client_n_workers, local_client_threads_per_worker, 
             yarn_container_n_workers, yarn_container_worker_vcores, yarn_container_worker_memory,
             n_worker_nodes, use_yarn_cluster, use_auto_config, instance_type)
-        
-        self.start_dask_client()
+
+        self.has_dask_client = False
         
     def run_evaluation(self, evaluation_manager, debug_mode=False):
 
@@ -103,12 +104,25 @@ class EvaluationEngine():
         if self.use_yarn_cluster and evaluation_manager.S3_path is None:
             raise ValueError('if [ use_yarn_cluster ] is set to True, you must provide [ S3_path ] to EvaluationManager object.')
 
+        if os.path.exists(evaluation_manager.evaluation_task_dirpath):
+            print('\u2757 Removing duplicate evaluation_task_dirpath')
+            shutil.rmtree(evaluation_manager.evaluation_task_dirpath)
         os.makedirs(evaluation_manager.evaluation_task_dirpath)
         os.chdir(evaluation_manager.evaluation_task_dirpath)
-
-        
-        print(os.getcwd())
+        # by not removing the local_directory_path (root) but just the task specific dir, 
+        # we can ensure re-runnability of the current evaluation task.
+        # if EM were to be redefined, another task dir will be created.
         # the change of directory is required for sharing methods across yarn and local clients
+        # also, need to start dask AFTER the change in directory 
+
+        if not self.has_dask_client:
+            self.start_dask_client()
+            self.has_dask_client = True
+        else:
+            self.stop_dask_client()
+            self.start_dask_client()
+            self.has_dask_client = True
+            
         
         print("\u2714 Preparing local data...                ", end="", flush=True)
         self.memmap_map = load_local_data(evaluation_manager)
@@ -155,6 +169,8 @@ class EvaluationEngine():
                     
             else:
                 pass  # normal cross validations
+
+        os.chdir(evaluation_manager.initial_dirpath)
         
     def get_group_orderby_array(self, group_key):
         

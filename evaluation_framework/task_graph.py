@@ -6,6 +6,7 @@ import copy
 import numpy as np
 import pandas as pd
 import os
+import time
 
 
 class TaskGraph():
@@ -19,40 +20,44 @@ class TaskGraph():
     (designable up to the data directory structure)
     """
     
-    def __init__(self, task_manager, cv): 
+    def __init__(self, task_manager, cv, verbose=False): 
 
         self.task_manager = task_manager
         self.cv = cv
+        self.verbose = verbose
 
     def run(self, group_key, cv_split_index):   
 
-        return(os.getcwd())
+        attempts = 0
+        succeeded = False
 
-        # attempts = 0
+        while attempts < 3:
 
-        # while attempts < 3:
-
-        #     try:
+            try:
                 
-        #         train_data, test_data, train_idx, test_idx = self.get_data(group_key, cv_split_index)
-        #         prediction_result, evaluation_result = self.task_graph(train_data, test_data, group_key)
+                train_data, test_data, train_idx, test_idx = self.get_data(group_key, cv_split_index)
+                prediction_result, evaluation_result = self.task_graph(train_data, test_data, group_key)
 
-        #         if self.task_manager.return_predictions:
-        #             self.record_predictions(group_key, cv_split_index, prediction_result, test_data, test_idx)
+                if self.task_manager.return_predictions:
+                    self.record_predictions(group_key, cv_split_index, prediction_result, test_data, test_idx)
 
-        #         break
+                succeeded = True
 
-        #     except:
+                break
 
-        #         attempts += 1
+            except:
 
-        # train_data, test_data, train_idx, test_idx = self.get_data(group_key, cv_split_index)
-        # prediction_result, evaluation_result = self.task_graph(train_data, test_data, group_key)
+                attempts += 1
 
-        # if self.task_manager.return_predictions:
-        #     self.record_predictions(group_key, cv_split_index, prediction_result, test_data, test_idx)
+        if not succeeded:
 
-        # return (group_key, cv_split_index, evaluation_result, len(prediction_result))
+            train_data, test_data, train_idx, test_idx = self.get_data(group_key, cv_split_index)
+            prediction_result, evaluation_result = self.task_graph(train_data, test_data, group_key)
+
+            if self.task_manager.return_predictions:
+                self.record_predictions(group_key, cv_split_index, prediction_result, test_data, test_idx)
+
+        return (group_key, cv_split_index, evaluation_result, len(prediction_result))
 
     def get_data(self, group_key, cv_split_index):
 
@@ -61,6 +66,10 @@ class TaskGraph():
         self.memmap_map = load_obj(memmap_map_filepath)
         
         train_idx, test_idx = self._get_cross_validation_fold_idx(self.memmap_map, group_key, cv_split_index)
+
+        if self.verbose:
+            print('train size: {}'.format(len(train_idx)))
+            print('test_size: {}'.format(len(test_idx)))
 
         train_data = self._read_memmap(self.memmap_map, group_key, train_idx)
         test_data = self._read_memmap(self.memmap_map, group_key, test_idx)
@@ -71,31 +80,41 @@ class TaskGraph():
         
         configs = self.task_manager.user_configs
         
+        if self.verbose: start_time = time.time()
         preprocessed_train_data = self.task_manager.preprocess_train_data(
             train_data, 
             configs)
+        if self.verbose: print('Completed preprocess_train_data:', time.time() - start_time)
         
+        if self.verbose: start_time = time.time()
         trained_estimator = self.task_manager.model_fit(
            preprocessed_train_data, 
            self.task_manager.hyperparameters, 
            self.task_manager.estimator,
            self.task_manager.feature_names[group_key],
            self.task_manager.target_name)
+        if self.verbose: print('Completed model_fit:', time.time() - start_time)
 
+        if self.verbose: start_time = time.time()
         preprocessed_test_data = self.task_manager.preprocess_test_data(
            test_data, 
            preprocessed_train_data, 
            configs)
+        if self.verbose: print('Completed preprocess_test_data:', time.time() - start_time)
 
+        if self.verbose: start_time = time.time()
         prediction_result = self.task_manager.model_predict(
            preprocessed_test_data, 
            trained_estimator, 
            self.task_manager.feature_names[group_key],
            self.task_manager.target_name)
+        if self.verbose: print('Completed model_predict:', time.time() - start_time)
 
+        if self.verbose: start_time = time.time()
         evaluation_result = self.task_manager.evaluate_prediction(
            preprocessed_test_data, 
            prediction_result['specialEF_float32_predictions'])
+        if self.verbose: print('Completed evaluate_prediction:', time.time() - start_time)
 
         return (prediction_result, evaluation_result)
         
@@ -159,6 +178,7 @@ class TaskGraph():
         """memmap['groups'][group_key]['groups'][group_key_innder]['arrays'][filepath, dtype, shape]
 
         """
+        if self.verbose: start_time = time.time()
         test_data_prediction = test_data.merge(prediction_result, on='specialEF_float32_UUID', how='inner')
 
         predictions_array = test_data_prediction[['specialEF_float32_UUID', 'specialEF_float32_predictions']]
@@ -170,6 +190,8 @@ class TaskGraph():
         # try:
         np.save(filepath, predictions_array)
         np.load(filepath)
+
+        if self.verbose: print('Completed record_predictions:', time.time() - start_time)
         # except:
         #     pass
             # need to pass some value to indicate failure instead of unavailability!
