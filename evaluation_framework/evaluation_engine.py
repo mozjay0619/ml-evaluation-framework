@@ -86,7 +86,7 @@ class EvaluationEngine():
     def __init__(self, local_client_n_workers=None, local_client_threads_per_worker=None, 
                  yarn_container_n_workers=None, yarn_container_worker_vcores=None, yarn_container_worker_memory=None,
                  n_worker_nodes=None, use_yarn_cluster=None, use_auto_config=None, instance_type=None,
-                 verbose=True):
+                 verbose=False):
         
         self.verbose = verbose
         
@@ -330,7 +330,6 @@ class EvaluationEngine():
                 print('yarn_container_worker_vcores: {}'.format(self.yarn_container_worker_vcores))
                 print('yarn_container_worker_memory: {}'.format(self.yarn_container_worker_memory))
                 print('n_worker_nodes: {}'.format(self.n_worker_nodes))
-                print()
 
             else:
                 self.use_yarn_cluster = False
@@ -341,8 +340,6 @@ class EvaluationEngine():
                 print('[ dask configurations ]')
                 print('local_client_n_workers: {}'.format(self.local_client_n_workers))
                 print('local_client_threads_per_worker: {}'.format(self.local_client_threads_per_worker))
-                print()
-
                 
     def get_evaluation_results(self):
 
