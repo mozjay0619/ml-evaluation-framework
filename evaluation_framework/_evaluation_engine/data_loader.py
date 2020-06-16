@@ -87,6 +87,8 @@ def upload_remote_data(task_manager, ip_addr):
 
     **The file structure should be identical to that of local machine, making it possible to
     use this method on local machine as well for testing purposes.
+
+    **ip_addr is added at the decorator [ yarn_directory_normalizer ]
     """
     source_dirpath = os.path.join(os.getcwd(), 'prediction_arrays')
     
