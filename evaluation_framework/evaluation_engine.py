@@ -286,7 +286,8 @@ class EvaluationEngine():
                 else:
                     num_physical_cores = int(INSTANCE_TYPES[instance_type]['vCPU']/2)
                     num_virtual_cores = int(INSTANCE_TYPES[instance_type]['vCPU'])
-                    available_memory = int(INSTANCE_TYPES[instance_type]['Mem'] - 2)
+                    available_memory = int(INSTANCE_TYPES[instance_type]['Mem'] - 4)
+                    # 2 GB claimed by client + 2 GB claimed by scheduler in a node
 
                     large_instance = num_physical_cores>=8
 
