@@ -86,7 +86,7 @@ class EvaluationEngine():
     def __init__(self, local_client_n_workers=None, local_client_threads_per_worker=None, 
                  yarn_container_n_workers=None, yarn_container_worker_vcores=None, yarn_container_worker_memory=None,
                  n_worker_nodes=None, use_yarn_cluster=None, use_auto_config=None, instance_type=None,
-                 verbose=True):
+                 verbose=False):
         
         self.verbose = verbose
         
@@ -147,7 +147,8 @@ class EvaluationEngine():
             print('\nStopping for debugging mode!')
             return 
         
-        print("\n\u23F3 Starting evaluations...         ", end="", flush=True)
+        print("\n\u23F3 Starting evaluations...         ")
+        self.dask_client.get_dashboard_link()
         for group_key in self.memmap_map['attributes']['sorted_group_keys']:
 
             if self.task_manager.orderby:
@@ -211,9 +212,6 @@ class EvaluationEngine():
             self.dask_yarn_client = None
             
             num_threads = self.local_client_n_workers
-            
-            print('\n[ dashboard link ]')
-            self.dask_client.get_dashboard_link()
         
         self.taskq = MultiThreadTaskQueue(num_threads=num_threads)
         
