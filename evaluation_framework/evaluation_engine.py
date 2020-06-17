@@ -348,7 +348,36 @@ class EvaluationEngine():
         self.taskq.join()
 
         res = self.taskq.get_results()
-#         res_pdf = pd.DataFrame(res, columns=['group_key', 'test_idx', 'eval_result', 'data_count'])
-#         return res_pdf.sort_values(by=['group_key', 'test_idx']).reset_index(drop=True)
+        res_pdf = pd.DataFrame(res, columns=['group_key', 'test_idx', 'eval_result', 'data_count'])
+        return res_pdf.sort_values(by=['group_key', 'test_idx']).reset_index(drop=True)
 
         return res
+
+    def get_prediction_results(self, group_key=None):
+
+        self.taskq.join()
+
+        if self.use_yarn_cluster:
+
+            print("\n\u2714 Uploading remote prediction results...   ", end="", flush=True)
+            self.dask_client.submit_per_node(upload_remote_data, self.task_manager)
+            print('Completed!')
+
+            print("\n\u2714 Downloading remote prediction results... ", end="", flush=True)
+            download_remote_data(self.task_manager)
+            print('Completed!')
+
+        prediction_dirpath = os.path.join(os.getcwd(), self.task_manager.prediction_records_dirname)
+        prediction_filenames = os.listdir(prediction_dirpath)
+        prediction_filepaths = [os.path.join(prediction_dirpath, elem) for elem in prediction_filenames]
+
+        prediction_array = np.vstack([np.load(elem) for elem in prediction_filepaths])
+        prediction_array = prediction_array[prediction_array[:, 0].argsort()]
+
+        prediction_pdf = pd.DataFrame(prediction_array, columns=['specialEF_float32_UUID', 'specialEF_float32_predictions'])
+        prediction_pdf.set_index('specialEF_float32_UUID', inplace=True)
+        prediction_pdf = prediction_pdf.reindex(range(0, len(self.data)), fill_value=np.nan)
+        self.data['specialEF_float32_predictions'] = prediction_pdf['specialEF_float32_predictions']
+        self.data.drop(labels='specialEF_float32_UUID', axis=1, inplace=True)
+        return self.data   
+
