@@ -128,18 +128,18 @@ class EvaluationEngine():
         print('Completed!')
         
         # evaluation_manager is too bulky to travel across network
-        task_manager = TaskManager(
+        self.task_manager = TaskManager(
             **{k: v for k, v in evaluation_manager.__dict__.items() 
             if k in TASK_REQUIRED_KEYWORDS})
         
         if self.use_yarn_cluster:
             
             print("\u2714 Uploading local data to S3 bucket...   ", end="", flush=True)
-            upload_local_data(task_manager)
+            upload_local_data(self.task_manager)
             print('Completed!')
             
             print("\u2714 Preparing data on remote workers...    ", end="", flush=True)
-            self.dask_client.submit_per_node(download_local_data, task_manager)
+            self.dask_client.submit_per_node(download_local_data, self.task_manager)
             print('Completed!')
         
         if debug_mode:
@@ -150,18 +150,18 @@ class EvaluationEngine():
         self.dask_client.get_dashboard_link()
         for group_key in self.memmap_map['attributes']['sorted_group_keys']:
 
-            if task_manager.orderby:
+            if self.task_manager.orderby:
 
                 group_orderby_array = self.get_group_orderby_array(group_key)
 
                 cv = get_cv_splitter(
-                    task_manager.cross_validation_scheme, 
-                    task_manager.train_window, 
-                    task_manager.test_window, 
+                    self.task_manager.cross_validation_scheme, 
+                    self.task_manager.train_window, 
+                    self.task_manager.test_window, 
                     group_orderby_array)
                 n_splits = cv.get_n_splits()
 
-                task_graph = TaskGraph(task_manager, cv)
+                task_graph = TaskGraph(self.task_manager, cv)
 
                 for i in range(n_splits):
 
