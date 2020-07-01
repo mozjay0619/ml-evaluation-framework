@@ -11,14 +11,14 @@ class EvaluationManager():
         
     def setup_evaluation(self, **kwargs):
 
-        configs_set = self.config_setter.set_configs(**kwargs)
-        methods_set = self.method_setter.set_methods(config_setter=self.config_setter, **kwargs)
+        # configs_set = self.config_setter.set_configs(**kwargs)
+        # methods_set = self.method_setter.set_methods(config_setter=self.config_setter, **kwargs)
 
-        # if not self.config_setter.set_configs(**kwargs):
-        #    return
+        if not self.config_setter.set_configs(**kwargs):
+           return
 
-        # if not self.method_setter.set_methods(config_setter=self.config_setter, **kwargs):
-        #    return
+        if not self.method_setter.set_methods(config_setter=self.config_setter, **kwargs):
+           return
 
         self.load_object_fields(self.config_setter)
         self.load_object_fields(self.method_setter)

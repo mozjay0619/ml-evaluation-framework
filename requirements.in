@@ -10,3 +10,4 @@ tables
 scikit-learn
 future
 boto3
+hierarchical-memmap-format

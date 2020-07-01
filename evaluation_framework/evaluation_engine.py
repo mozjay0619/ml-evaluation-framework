@@ -12,6 +12,9 @@ from evaluation_framework.utils.memmap_utils import write_memmap
 from evaluation_framework.utils.memmap_utils import read_memmap
 from ._evaluation_engine.cross_validation_split import get_cv_splitter
 from .task_graph import TaskGraph
+from evaluation_framework import constants
+
+import HMF
 
 import os
 import pandas as pd
@@ -19,6 +22,7 @@ import numpy as np
 from collections import namedtuple
 import psutil
 import shutil
+import time
 
 
 INSTANCE_TYPES = {
@@ -73,10 +77,13 @@ TASK_REQUIRED_KEYWORDS = [
     'memmap_root_dirpath',
     'cross_validation_scheme',
     'train_window',
+    'min_train_window',
     'test_window',
     'evaluation_task_dirname', 
     'evaluation_task_dirpath',
     'job_uuid']
+
+DEBUG_MODE_MAXITER = 10
 
 TaskManager = namedtuple('TaskManager', TASK_REQUIRED_KEYWORDS)
 
@@ -105,7 +112,7 @@ class EvaluationEngine():
             raise ValueError('if [ use_yarn_cluster ] is set to True, you must provide [ S3_path ] to EvaluationManager object.')
 
         if os.path.exists(evaluation_manager.evaluation_task_dirpath):
-            print('\u2757 Removing duplicate evaluation_task_dirpath')
+            print('\u2757 Removing duplicate evaluation_task_dirpath\n')
             shutil.rmtree(evaluation_manager.evaluation_task_dirpath)
         os.makedirs(evaluation_manager.evaluation_task_dirpath)
         os.chdir(evaluation_manager.evaluation_task_dirpath)
@@ -115,17 +122,25 @@ class EvaluationEngine():
         # the change of directory is required for sharing methods across yarn and local clients
         # also, need to start dask AFTER the change in directory 
 
-        if not self.has_dask_client:
-            self.start_dask_client()
-            self.has_dask_client = True
-        else:
-            self.stop_dask_client()
-            self.start_dask_client()
-            self.has_dask_client = True
+
+        if(not debug_mode):
             
-        print("\u2714 Preparing local data...                ", end="", flush=True)
-        self.memmap_map = load_local_data(evaluation_manager)
-        print('Completed!')
+            if not self.has_dask_client:
+                self.start_dask_client()
+                self.has_dask_client = True
+            else:
+                self.stop_dask_client()
+                self.start_dask_client()
+                self.has_dask_client = True
+                
+        print("\u2714 Preparing local data...            ", end="", flush=True)
+        print()
+        # self.memmap_map = load_local_data(evaluation_manager)
+        load_local_data(evaluation_manager)
+        # print('Completed!')
+
+        root_dirpath = os.path.join(os.getcwd(), evaluation_manager.memmap_root_dirname)
+        self.f = HMF.open_file(root_dirpath, mode='r+')
         
         # evaluation_manager is too bulky to travel across network
         self.task_manager = TaskManager(
@@ -138,17 +153,82 @@ class EvaluationEngine():
             upload_local_data(self.task_manager)
             print('Completed!')
             
-            print("\u2714 Preparing data on remote workers...    ", end="", flush=True)
+            print("\u2714 Preparing data on remote workers...   ", end="", flush=True)
             self.dask_client.submit_per_node(download_local_data, self.task_manager)
             print('Completed!')
         
         if debug_mode:
-            print('\nStopping for debugging mode!')
+            print('\nRunning on debug mode!')
+
+            ###################################################################################################################
+            ###################################################### DEBUG MODE #################################################
+            ###################################################################################################################
+
+            iter_count = 0
+
+            start_time = time.time()
+
+            total_splits = 0
+            for group_key in self.f.get_node_attr('/', key='sorted_group_keys'):
+
+                if self.task_manager.orderby:
+
+                    group_orderby_array = self.get_group_orderby_array(group_key)
+
+                    cv = get_cv_splitter(
+                        self.task_manager.cross_validation_scheme, 
+                        self.task_manager.train_window, 
+                        self.task_manager.test_window,
+                        self.task_manager.min_train_window,
+                        group_orderby_array)
+                    total_splits += cv.get_n_splits()
+
+
+            print(total_splits)
+            print(time.time() - start_time)
+
+
+            # for group_key in self.f.get_node_attr('/', key='sorted_group_keys'):
+
+            #     if self.task_manager.orderby:
+
+            #         group_orderby_array = self.get_group_orderby_array(group_key)
+
+            #         cv = get_cv_splitter(
+            #             self.task_manager.cross_validation_scheme, 
+            #             self.task_manager.train_window, 
+            #             self.task_manager.test_window,
+            #             self.task_manager.min_train_window,
+            #             group_orderby_array)
+            #         n_splits = cv.get_n_splits()
+
+            #         task_graph = TaskGraph(self.task_manager, cv)
+
+            #         for i in range(n_splits):
+
+            #             task_graph.run(group_key, i)
+
+            #             iter_count += 1
+
+            #             if(iter_count == DEBUG_MODE_MAXITER):
+            #                 print('\nReached DEBUG_MODE_MAXITER stopping')
+            #                 return
+
+
+                # else:
+                #     pass
+
+            ###################################################################################################################
+            ###################################################### DEBUG MODE #################################################
+            ###################################################################################################################
+
+
             return 
 
-        print("\n\u23F3 Starting evaluations...         ")
+        print("\n\u23F3 Starting evaluations...   ")
         self.dask_client.get_dashboard_link()
-        for group_key in self.memmap_map['attributes']['sorted_group_keys']:
+        # for group_key in self.memmap_map['attributes']['sorted_group_keys']:
+        for group_key in self.f.get_node_attr('/', key='sorted_group_keys'):
 
             if self.task_manager.orderby:
 
@@ -157,7 +237,8 @@ class EvaluationEngine():
                 cv = get_cv_splitter(
                     self.task_manager.cross_validation_scheme, 
                     self.task_manager.train_window, 
-                    self.task_manager.test_window, 
+                    self.task_manager.test_window,
+                    self.task_manager.min_train_window,
                     group_orderby_array)
                 n_splits = cv.get_n_splits()
 
@@ -173,18 +254,24 @@ class EvaluationEngine():
         os.chdir(evaluation_manager.initial_dirpath)
         
     def get_group_orderby_array(self, group_key):
+
         
-        filepath = os.path.join(self.memmap_map['root_dirpath'], self.memmap_map['groups'][group_key]['arrays']['orderby_array']['filepath'])
-        dtype = self.memmap_map['groups'][group_key]['arrays']['orderby_array']['dtype']
-        shape = self.memmap_map['groups'][group_key]['arrays']['orderby_array']['shape']
-        group_orderby_array = read_memmap(filepath, dtype, shape)
+
+
+        
+        # filepath = os.path.join(self.memmap_map['root_dirpath'], self.memmap_map['groups'][group_key]['arrays']['orderby_array']['filepath'])
+        # dtype = self.memmap_map['groups'][group_key]['arrays']['orderby_array']['dtype']
+        # shape = self.memmap_map['groups'][group_key]['arrays']['orderby_array']['shape']
+        # group_orderby_array = read_memmap(filepath, dtype, shape)
+
+        group_orderby_array = self.f.get_array('/{}/orderby_array'.format(group_key))
         return group_orderby_array
 
     def start_dask_client(self):
         
         if self.use_yarn_cluster:
 
-            print("\u2714 Starting Dask client...                ", end="", flush=True)
+            print("\u2714 Starting Dask client...            ", end="", flush=True)
             self.dask_client = DualClientFuture(local_client_n_workers=self.local_client_n_workers, 
                                local_client_threads_per_worker=self.local_client_threads_per_worker, 
                                yarn_client_n_workers=self.yarn_container_n_workers*self.n_worker_nodes, 
@@ -199,7 +286,7 @@ class EvaluationEngine():
 
         else:
 
-            print("\u2714 Starting Dask client...                ", end="", flush=True)
+            print("\u2714 Starting Dask client...            ", end="", flush=True)
             self.dask_client = ClientFuture(local_client_n_workers=self.local_client_n_workers, 
                                    local_client_threads_per_worker=self.local_client_threads_per_worker)
             print('Completed!')
@@ -355,6 +442,9 @@ class EvaluationEngine():
 
     def get_prediction_results(self, group_key=None):
 
+
+        # print(os.getcwd())
+
         self.taskq.join()
 
         if self.use_yarn_cluster:
@@ -367,17 +457,18 @@ class EvaluationEngine():
             download_remote_data(self.task_manager)
             print('Completed!')
 
-        prediction_dirpath = os.path.join(os.getcwd(), self.task_manager.prediction_records_dirname)
+        prediction_dirpath = os.path.join(self.task_manager.evaluation_task_dirpath, self.task_manager.prediction_records_dirname)
         prediction_filenames = os.listdir(prediction_dirpath)
+
         prediction_filepaths = [os.path.join(prediction_dirpath, elem) for elem in prediction_filenames]
 
         prediction_array = np.vstack([np.load(elem) for elem in prediction_filepaths])
         prediction_array = prediction_array[prediction_array[:, 0].argsort()]
 
-        prediction_pdf = pd.DataFrame(prediction_array, columns=['specialEF_float32_UUID', 'specialEF_float32_predictions'])
-        prediction_pdf.set_index('specialEF_float32_UUID', inplace=True)
+        prediction_pdf = pd.DataFrame(prediction_array, columns=[constants.EF_UUID_NAME, constants.EF_PREDICTION_NAME])
+        prediction_pdf.set_index(constants.EF_UUID_NAME, inplace=True)
         prediction_pdf = prediction_pdf.reindex(range(0, len(self.data)), fill_value=np.nan)
-        self.data['specialEF_float32_predictions'] = prediction_pdf['specialEF_float32_predictions']
-        self.data.drop(labels='specialEF_float32_UUID', axis=1, inplace=True)
-        return self.data   
+        self.data[constants.EF_PREDICTION_NAME] = prediction_pdf[constants.EF_PREDICTION_NAME]
+        
+        return self.data.drop(labels=constants.EF_UUID_NAME, axis=1, inplace=False)
 

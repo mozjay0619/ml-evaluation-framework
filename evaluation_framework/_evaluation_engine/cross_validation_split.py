@@ -58,17 +58,18 @@ class BaseRollingWindowSplit(metaclass=ABCMeta):
 
 class DateRollingWindowSplit(BaseRollingWindowSplit):
     
-    def __init__(self, num_train_days, num_test_days, orderby,
+    def __init__(self, num_train_days, num_test_days, min_num_train_days, orderby,
                  random_state=None):
         super().__init__(random_state=random_state, orderby=orderby)
         self.num_train_days = num_train_days
         self.num_test_days = num_test_days
+        self.min_num_train_days = min_num_train_days
     
     def _iter_indices(self, X, y, groups):
         
         n_samples = _num_samples(X)
         indices = np.arange(n_samples)
-        head_date_idx = 0
+        head_date_idx = self.orderby.min()
         last_date_idx = self.orderby.max()
 
         while(head_date_idx + self.num_train_days <= last_date_idx):
@@ -79,6 +80,9 @@ class DateRollingWindowSplit(BaseRollingWindowSplit):
                            (self.orderby < head_date_idx + self.num_train_days + self.num_test_days)]
 
             head_date_idx += self.num_test_days
+
+            if(len(train)<self.min_num_train_days or len(test)==0):
+                continue
             
             yield train, test
             
