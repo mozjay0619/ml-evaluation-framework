@@ -3,8 +3,6 @@ from evaluation_framework.utils.memmap_utils import write_memmap
 from evaluation_framework.utils.memmap_utils import read_memmap
 from evaluation_framework import constants
 
-import HMF
-
 import copy
 import numpy as np
 import pandas as pd
@@ -28,10 +26,6 @@ class TaskGraph():
         self.task_manager = task_manager
         self.cv = cv
         self.verbose = verbose
-
-        root_dirpath = os.path.join(os.getcwd(), self.task_manager.memmap_root_dirname)
-        self.f = HMF.open_file(root_dirpath, mode='r+')
-
 
     def run(self, group_key, cv_split_index):   
 
@@ -68,10 +62,8 @@ class TaskGraph():
 
     def get_data(self, group_key, cv_split_index):
 
-
-
         memmap_root_dirpath = os.path.join(os.getcwd(), self.task_manager.memmap_root_dirname)
-        memmap_map_filepath = os.path.join(memmap_root_dirpath, constants.EF_MEMMAP_MAP_NAME)
+        memmap_map_filepath = os.path.join(memmap_root_dirpath, 'memmap_map')
         self.memmap_map = load_obj(memmap_map_filepath)
         
         train_idx, test_idx = self._get_cross_validation_fold_idx(self.memmap_map, group_key, cv_split_index)
@@ -122,36 +114,27 @@ class TaskGraph():
         if self.verbose: start_time = time.time()
         evaluation_result = self.task_manager.evaluate_prediction(
            preprocessed_test_data, 
-           prediction_result[constants.EF_PREDICTION_NAME])
+           prediction_result['__specialEF__float32_predictions'])
         if self.verbose: print('Completed evaluate_prediction:', time.time() - start_time)
 
         return (prediction_result, evaluation_result)
         
     def _read_memmap(self, memmap_map, group_key, data_idx):
-
-        missing_keys = self.f.get_node_attr('/{}'.format(group_key), key='missing_keys')
-        data_colnames = copy.copy(self.f.get_node_attr('/{}'.format(group_key), key='numeric_keys'))
-
-        data_arrays = [self.f.get_array('/{}/numeric_types'.format(group_key), idx=data_idx)]
-
-
-        # print(missing_keys)
-
-
-
-
     
-        # missing_keys = memmap_map['groups'][group_key]['attributes']['missing_keys']
-        # data_colnames = copy.copy(memmap_map['groups'][group_key]['attributes']['numeric_keys']) 
+        missing_keys = memmap_map['groups'][group_key]['attributes']['missing_keys']
+        data_colnames = copy.copy(memmap_map['groups'][group_key]['attributes']['numeric_keys']) 
 
-        # filepath = os.path.join(memmap_map['dirpath'], memmap_map['groups'][group_key]['arrays']['numeric_types']['dirpath'])
-        # dtype = memmap_map['groups'][group_key]['arrays']['numeric_types']['dtype']
-        # shape = memmap_map['groups'][group_key]['arrays']['numeric_types']['shape']
-        # data_arrays = [read_memmap(filepath, dtype, shape, data_idx)]
+        filepath = os.path.join(memmap_map['root_dirpath'], memmap_map['groups'][group_key]['arrays']['numeric_types']['filepath'])
+        dtype = memmap_map['groups'][group_key]['arrays']['numeric_types']['dtype']
+        shape = memmap_map['groups'][group_key]['arrays']['numeric_types']['shape']
+        data_arrays = [read_memmap(filepath, dtype, shape, data_idx)]
 
         for colname in missing_keys['datetime_types']:
-
-            tmp_array = self.f.get_array('/{}/{}'.format(group_key, colname))
+        
+            filepath = os.path.join(memmap_map['root_dirpath'], memmap_map['groups'][group_key]['arrays'][colname]['filepath'])
+            dtype = memmap_map['groups'][group_key]['arrays'][colname]['dtype']
+            shape = memmap_map['groups'][group_key]['arrays'][colname]['shape']
+            tmp_array = read_memmap(filepath, dtype, shape, data_idx)
 
             data_arrays.append(tmp_array.reshape(-1, 1))
             data_colnames.append(colname)
@@ -163,35 +146,28 @@ class TaskGraph():
             pdf.iloc[:, i-1] = pd.to_datetime(pdf.iloc[:, i-1])
             
         for colname in missing_keys['str_types']:
-
-            tmp_array = self.f.get_array('/{}/{}'.format(group_key, colname))
+            
+            filepath = os.path.join(memmap_map['root_dirpath'], memmap_map['groups'][group_key]['arrays'][colname]['filepath'])
+            dtype = memmap_map['groups'][group_key]['arrays'][colname]['dtype']
+            shape = memmap_map['groups'][group_key]['arrays'][colname]['shape']
+            tmp_array = read_memmap(filepath, dtype, shape, data_idx)
 
             tmp_array = tmp_array.astype(str)
             pdf[colname] = tmp_array
 
-        
         return pdf
     
     def _get_cross_validation_fold_idx(self, memmap_map, group_key, cv_split_index):
-
-
-
-
-
         
         if self.task_manager.orderby:  # have another parameter to check orderby needs to happen...
             # by cv scheme itself!
             
             # need to add random state
 
-
-            group_ordered_array = self.f.get_array('/{}/orderby_array'.format(group_key))
-
-
-            # filepath = os.path.join(memmap_map['dirpath'], memmap_map['groups'][group_key]['arrays']['orderby_array']['dirpath'])
-            # dtype = memmap_map['groups'][group_key]['arrays']['orderby_array']['dtype']
-            # shape = memmap_map['groups'][group_key]['arrays']['orderby_array']['shape']
-            # group_ordered_array = read_memmap(filepath, dtype, shape)
+            filepath = os.path.join(memmap_map['root_dirpath'], memmap_map['groups'][group_key]['arrays']['orderby_array']['filepath'])
+            dtype = memmap_map['groups'][group_key]['arrays']['orderby_array']['dtype']
+            shape = memmap_map['groups'][group_key]['arrays']['orderby_array']['shape']
+            group_ordered_array = read_memmap(filepath, dtype, shape)
 
             for idx, (train, test) in enumerate(self.cv.split(group_ordered_array)):
                 if idx == cv_split_index:
@@ -203,18 +179,11 @@ class TaskGraph():
         """memmap['groups'][group_key]['groups'][group_key_innder]['arrays'][filepath, dtype, shape]
 
         """
-
-
         if self.verbose: start_time = time.time()
-        test_data_prediction = test_data.merge(prediction_result, on=constants.EF_UUID_NAME, how='inner')
+        test_data_prediction = test_data.merge(prediction_result, on='__specialEF__float32_UUID', how='inner')
 
-
-
-        predictions_array = test_data_prediction[[constants.EF_UUID_NAME, constants.EF_PREDICTION_NAME]]
+        predictions_array = test_data_prediction[['__specialEF__float32_UUID', '__specialEF__float32_predictions']]
         predictions_array = predictions_array.values.astype(np.float32)
-
-
-        
 
         filename = '__'.join((group_key, str(cv_split_index))) + '.npy'
         filepath = os.path.join(os.getcwd(), self.task_manager.prediction_records_dirname, filename)
@@ -227,6 +196,10 @@ class TaskGraph():
         # except:
         #     pass
             # need to pass some value to indicate failure instead of unavailability!
+
+
+
+
 
 
 

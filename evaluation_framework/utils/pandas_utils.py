@@ -63,7 +63,7 @@ def decode_bytes2str(ndarray):
 
 def encode_date_sequence(ser):
     
-    return (ser - ser.min()).dt.days
+    return (ser - ser.min()).dt.days.astype(np.int32)
 
 
 

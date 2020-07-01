@@ -5,6 +5,7 @@ from ..utils.pandas_utils import is_datetime_type
 from ..utils.pandas_utils import is_float32_type
 from ..utils.pandas_utils import cast_datetime2int64
 from ..utils.pandas_utils import cast_numeric2float32
+from ..utils.pandas_utils import encode_date_sequence
 from ..utils.data_structure_utils import get_merged_list_from_dict_list_values
 from ..utils.data_structure_utils import dict_is_nested
 from ..utils.datetime_utils import check_date_format
@@ -17,9 +18,11 @@ import warnings
 import shutil
 import datetime
 
+from evaluation_framework import constants
+
 
 ORDERED_CV_SCHEMES = ['date_rolling_window']
-CV_OPTIONAL_ARGUMENTS = ['orderby', 'train_window', 'test_window']
+CV_OPTIONAL_ARGUMENTS = ['orderby', 'train_window', 'min_train_window', 'test_window']
 OPTIONAL_ARGUMENTS = ['groupby', 'hyperparameters', 'user_configs', 'S3_path', 'user_configs', 'return_predictions']
 CV_SCHEME_OPTIONS = ['date_rolling_window', 'k_fold', 'binary_classification']
 REQUIRED_ESTIMATOR_MEMBER_METHODS = ['fit', 'predict']
@@ -41,7 +44,7 @@ class ConfigSetter():
                     data=None, target_name=None, feature_names=None, 
                     hyperparameters=None, cross_validation_scheme=None,
                     groupby=None, 
-                    orderby=None, train_window=None, test_window=None,
+                    orderby=None, train_window=None, min_train_window=None, test_window=None,
                     user_configs=None, local_directory_path=None, S3_path=None, 
                     return_predictions=None, **kwargs):
         
@@ -54,6 +57,7 @@ class ConfigSetter():
         self.groupby = groupby
         self.orderby = orderby
         self.train_window = train_window
+        self.min_train_window = min_train_window
         self.test_window = test_window 
         self.user_configs = user_configs
         self.local_directory_path = local_directory_path
@@ -74,7 +78,31 @@ class ConfigSetter():
         else:
             print("Passed!")
 
+        self.define_helper_columns()
+
         return True
+
+
+    def define_helper_columns(self):
+
+        if(self.return_predictions):
+
+            self.prediction_records_dirname = 'prediction_arrays'
+
+            # makes sense to join the predictions on self.data since that data is already
+            # loaded in memory. It would be expensive to re-load it into memory, esp. if it
+            # is really big.
+
+            # create key column to join the predictions
+            key_column = np.arange(len(self.data)).astype(np.float32)
+            self.data[constants.EF_UUID_NAME] = key_column
+
+            # assuming data validation was done before...
+            self.numeric_types.append(constants.EF_UUID_NAME)
+
+        if(self.orderby):
+
+            self.data[constants.EF_ORDERBY_NAME] = encode_date_sequence(self.data[self.orderby])
         
     def passed_arguments_requirements(self):
         
@@ -145,7 +173,7 @@ class ConfigSetter():
         
         cv_optional_args = list(set(CV_OPTIONAL_ARGUMENTS) - set(self._ordered_CV_required_arguments()))
         optional_args = cv_optional_args + OPTIONAL_ARGUMENTS
-        optional_args = set(optional_args) - set(args_present)     
+        optional_args = set(optional_args) - set(args_present)   
         return optional_args
 
     def passed_arguments_validity(self):
@@ -174,20 +202,20 @@ class ConfigSetter():
                 raise TypeError('[ return_predictions ] must be boolean but instead got '
                                 '{}'.format(type(self.return_predictions)))
 
-            if self.return_predictions:
+            # if self.return_predictions:
 
-                self.prediction_records_dirname = 'prediction_arrays'
+            #    self.prediction_records_dirname = 'prediction_arrays'
 
-                # makes sense to join the predictions on self.data since that data is already
-                # loaded in memory. It would be expensive to re-load it into memory, esp. if it
-                # is really big.
+            #    # makes sense to join the predictions on self.data since that data is already
+            #    # loaded in memory. It would be expensive to re-load it into memory, esp. if it
+            #    # is really big.
 
-                # create key column to join the predictions
-                key_column = np.arange(len(self.data)).astype(np.float32)
-                self.data['specialEF_float32_UUID'] = key_column
+            #    # create key column to join the predictions
+            #    key_column = np.arange(len(self.data)).astype(np.float32)
+            #    self.data[constants.EF_UUID_NAME] = key_column
 
-                # assuming data validation was done before...
-                self.numeric_types.append('specialEF_float32_UUID')
+            #    # assuming data validation was done before...
+            #    self.numeric_types.append(constants.EF_UUID_NAME)
 
     def _validate_user_configs(self):
 
@@ -387,7 +415,7 @@ class ConfigSetter():
                 raise ValueError('The [ groupby ] "{}" column name'
                                  'does not exist in [ data ] dataframe.'.format(self.groupby))
 
-        # convert all date str types to datetime types        
+        # convert all date str types to datetime types    
         while len(self.date_str_types)>0:
             # raise warning!
             k = self.date_str_types.pop()
@@ -504,6 +532,6 @@ class ConfigSetter():
         if not all([check_date_format(elem) for elem in dates]):
             print('Failed!')
             raise ValueError('The date keys of [ {} ] failed to be parsed. '
-                             'They must be of the form YYYY-MM-DD.'.format(parameter_name))    
+                             'They must be of the form YYYY-MM-DD.'.format(parameter_name)) 
 
             

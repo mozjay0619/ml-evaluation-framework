@@ -1,4 +1,4 @@
-
+from evaluation_framework import constants
 
 
 
@@ -53,9 +53,10 @@ def default_model_predict(preprocessed_test_data, trained_estimator, feature_nam
     preprocessed_test_data = preprocessed_test_data.reset_index(drop=True)
     
     X = preprocessed_test_data[feature_names]
-    preprocessed_test_data['specialEF_float32_predictions'] = trained_estimator.predict(X)
+    preprocessed_test_data[constants.EF_PREDICTION_NAME] = trained_estimator.predict(X)
 
-    prediction_result = preprocessed_test_data[['specialEF_float32_UUID', 'specialEF_float32_predictions']]    
+    prediction_result = preprocessed_test_data[[constants.EF_UUID_NAME, constants.EF_PREDICTION_NAME]]    
     return prediction_result
+
 
 
