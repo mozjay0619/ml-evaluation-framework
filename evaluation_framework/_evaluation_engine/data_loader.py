@@ -69,7 +69,7 @@ def download_local_data(task_manager):
 
     # update memmap_map with new root_dir
     updated_memmap_map_root_dirpath = os.path.join(os.getcwd(), task_manager.memmap_root_dirname)
-    memmap_map_filepath = os.path.join(updated_memmap_map_root_dirpath, 'memmap_map')
+    memmap_map_filepath = os.path.join(updated_memmap_map_root_dirpath, constants.EF_MEMMAP_MAP_NAME)
     memmap_map = load_obj(memmap_map_filepath)
     memmap_map['root_dirpath'] = updated_memmap_map_root_dirpath
     save_obj(memmap_map, memmap_map_filepath)
