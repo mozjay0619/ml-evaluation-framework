@@ -188,35 +188,35 @@ class EvaluationEngine():
             print(time.time() - start_time)
 
 
-            # for group_key in self.f.get_node_attr('/', key='sorted_group_keys'):
+            for group_key in self.f.get_node_attr('/', key='sorted_group_keys'):
 
-            #     if self.task_manager.orderby:
+                if self.task_manager.orderby:
 
-            #         group_orderby_array = self.get_group_orderby_array(group_key)
+                    group_orderby_array = self.get_group_orderby_array(group_key)
 
-            #         cv = get_cv_splitter(
-            #             self.task_manager.cross_validation_scheme, 
-            #             self.task_manager.train_window, 
-            #             self.task_manager.test_window,
-            #             self.task_manager.min_train_window,
-            #             group_orderby_array)
-            #         n_splits = cv.get_n_splits()
+                    cv = get_cv_splitter(
+                        self.task_manager.cross_validation_scheme, 
+                        self.task_manager.train_window, 
+                        self.task_manager.test_window,
+                        self.task_manager.min_train_window,
+                        group_orderby_array)
+                    n_splits = cv.get_n_splits()
 
-            #         task_graph = TaskGraph(self.task_manager, cv)
+                    task_graph = TaskGraph(self.task_manager, cv)
 
-            #         for i in range(n_splits):
+                    for i in range(n_splits):
 
-            #             task_graph.run(group_key, i)
+                        task_graph.run(group_key, i)
 
-            #             iter_count += 1
+                        iter_count += 1
 
-            #             if(iter_count == DEBUG_MODE_MAXITER):
-            #                 print('\nReached DEBUG_MODE_MAXITER stopping')
-            #                 return
+                        if(iter_count == DEBUG_MODE_MAXITER):
+                            print('\nReached DEBUG_MODE_MAXITER stopping')
+                            return
 
 
-                # else:
-                #     pass
+                else:
+                    pass
 
             ###################################################################################################################
             ###################################################### DEBUG MODE #################################################
