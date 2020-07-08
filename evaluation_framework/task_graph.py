@@ -29,11 +29,15 @@ class TaskGraph():
         self.cv = cv
         self.verbose = verbose
 
-        root_dirpath = os.path.join(os.getcwd(), self.task_manager.memmap_root_dirname)
-        self.f = HMF.open_file(root_dirpath, mode='r+')
+        # root_dirpath = os.path.join(os.getcwd(), self.task_manager.memmap_root_dirname)
+        # self.f = HMF.open_file(root_dirpath, mode='r+')
 
+        # 
 
     def run(self, group_key, cv_split_index):   
+
+        root_dirpath = os.path.join(os.getcwd(), self.task_manager.memmap_root_dirname)
+        self.f = HMF.open_file(root_dirpath, mode='r+')
 
         attempts = 0
         succeeded = False
@@ -206,6 +210,11 @@ class TaskGraph():
 
 
         if self.verbose: start_time = time.time()
+
+        print(test_data.columns)
+        print(prediction_result.columns)
+
+
         test_data_prediction = test_data.merge(prediction_result, on=constants.EF_UUID_NAME, how='inner')
 
 
