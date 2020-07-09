@@ -211,9 +211,6 @@ class TaskGraph():
 
         if self.verbose: start_time = time.time()
 
-        print(test_data.columns)
-        print(prediction_result.columns)
-
 
         test_data_prediction = test_data.merge(prediction_result, on=constants.EF_UUID_NAME, how='inner')
 

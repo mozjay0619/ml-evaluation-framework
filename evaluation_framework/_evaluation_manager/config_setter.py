@@ -182,6 +182,7 @@ class ConfigSetter():
         self._validate_local_directory_path()
         self._validate_s3_path()
         self._validate_estimator()
+        self._validate_helper_columns()
         self._validate_target_name()
         self._validate_feature_names()
         self._validate_data()
@@ -308,6 +309,17 @@ class ConfigSetter():
 
             if self.hyperparameters is not None:
                 warnings.warn("[ hyperparameters ] is not being used by [ estimator ].")
+
+    def _validate_helper_columns(self):
+
+        if constants.EF_UUID_NAME in self.data:
+            self.data.drop(labels=constants.EF_UUID_NAME, axis=1, inplace=True)
+            
+        if constants.EF_ORDERBY_NAME in self.data:
+            self.data.drop(labels=constants.EF_ORDERBY_NAME, axis=1, inplace=True)
+            
+        if constants.EF_PREDICTION_NAME in self.data:
+            self.data.drop(labels=constants.EF_PREDICTION_NAME, axis=1, inplace=True)
         
     def _validate_target_name(self):
         
