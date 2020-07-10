@@ -482,6 +482,7 @@ class EvaluationEngine():
         prediction_filenames = os.listdir(prediction_dirpath)
 
         prediction_filepaths = [os.path.join(prediction_dirpath, elem) for elem in prediction_filenames]
+        prediction_filepaths = [elem for elem in prediction_filepaths if elem.split('.')[-1]=='npy']
 
         prediction_array = np.vstack([np.load(elem) for elem in prediction_filepaths])
         prediction_array = prediction_array[prediction_array[:, 0].argsort()]
