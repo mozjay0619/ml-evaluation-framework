@@ -110,7 +110,7 @@ def download_remote_data(task_manager):
     2. unzip them and place them into the same directory
     """
 
-    prediction_dirpath = os.path.join(self.task_manager.evaluation_task_dirpath, self.task_manager.prediction_records_dirname)
+    prediction_dirpath = os.path.join(task_manager.evaluation_task_dirpath, task_manager.prediction_records_dirname)
     prediction_filenames = os.listdir(prediction_dirpath)
 
     prefix_name = 'prediction_arrays' + '__' + task_manager.job_uuid
