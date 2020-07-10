@@ -121,7 +121,7 @@ def download_remote_data(task_manager):
     for prediction_arrays_zip in prediction_arrays_zips:
         
         zipped_filepath = os.path.join(prediction_dirpath, prediction_arrays_zip)
-        unzip_dir(zipped_filepath, os.path.join(prediction_dirpath, 'prediction_arrays'))
+        unzip_dir(zipped_filepath, prediction_dirpath)
         
 def _write_memmap_filesys(task_manager, root_dirpath):
     """memmap mimicking hdf5 filesystem. 
