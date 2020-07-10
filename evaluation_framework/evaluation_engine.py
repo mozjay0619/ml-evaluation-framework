@@ -25,6 +25,27 @@ import shutil
 import time
 
 
+# INSTANCE_TYPES = {
+#     'm4.large': {'vCPU': 2, 'Mem': 8},
+#     'm4.xlarge': {'vCPU': 4, 'Mem': 16}, 
+#     'm4.2xlarge': {'vCPU': 8, 'Mem': 32},
+#     'm4.4xlarge': {'vCPU': 16, 'Mem': 64},
+#     'm4.10xlarge': {'vCPU': 40, 'Mem': 160},
+#     'm4.16xlarge': {'vCPU': 64, 'Mem': 256}, 
+    
+#     'c4.large': {'vCPU': 2, 'Mem': 3.75},
+#     'c4.xlarge': {'vCPU': 4, 'Mem': 7.5},
+#     'c4.2xlarge': {'vCPU': 8, 'Mem': 15},
+#     'c4.4xlarge': {'vCPU': 16, 'Mem': 30},
+#     'c4.8xlarge': {'vCPU': 36, 'Mem': 60}, 
+    
+#     'r4.large': {'vCPU': 2, 'Mem': 15.25},
+#     'r4.xlarge': {'vCPU': 4, 'Mem': 30.5},
+#     'r4.2xlarge': {'vCPU': 8, 'Mem': 61}, 
+#     'r4.4xlarge': {'vCPU': 16, 'Mem': 122},
+#     'r4.8xlarge': {'vCPU': 32, 'Mem': 244},
+#     'r4.16xlarge': {'vCPU': 64, 'Mem': 488}}
+
 INSTANCE_TYPES = {
     'm4.large': {'vCPU': 2, 'Mem': 8},
     'm4.xlarge': {'vCPU': 4, 'Mem': 16}, 
@@ -39,12 +60,12 @@ INSTANCE_TYPES = {
     'c4.4xlarge': {'vCPU': 16, 'Mem': 30},
     'c4.8xlarge': {'vCPU': 36, 'Mem': 60}, 
     
-    'r4.large': {'vCPU': 2, 'Mem': 15.25},
-    'r4.xlarge': {'vCPU': 4, 'Mem': 30.5},
-    'r4.2xlarge': {'vCPU': 8, 'Mem': 61}, 
-    'r4.4xlarge': {'vCPU': 16, 'Mem': 122},
-    'r4.8xlarge': {'vCPU': 32, 'Mem': 244},
-    'r4.16xlarge': {'vCPU': 64, 'Mem': 488}}
+    'r4.large': {'vCPU': 2, 'Mem': 15.25 - 3},
+    'r4.xlarge': {'vCPU': 4, 'Mem': 30.5 - 6},
+    'r4.2xlarge': {'vCPU': 8, 'Mem': 61 - 12}, 
+    'r4.4xlarge': {'vCPU': 16, 'Mem': 122 - 25},
+    'r4.8xlarge': {'vCPU': 32, 'Mem': 244 - 50},
+    'r4.16xlarge': {'vCPU': 64, 'Mem': 488 - 50}}
 
 DEFAULT_LARGE_INSTANCE_WORKER_VCORES = 4
 DEFAULT_SMALL_INSTANCE_WORKER_VCORES = 2
