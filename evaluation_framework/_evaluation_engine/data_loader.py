@@ -109,10 +109,14 @@ def download_remote_data(task_manager):
     1. download the prediction array zip dirs from S3
     2. unzip them and place them into the same directory
     """
+
+    prediction_dirpath = os.path.join(self.task_manager.evaluation_task_dirpath, self.task_manager.prediction_records_dirname)
+    prediction_filenames = os.listdir(prediction_dirpath)
+
     prefix_name = 'prediction_arrays' + '__' + task_manager.job_uuid
-    s3_download_object(os.getcwd(), task_manager.S3_path, prefix_name)
-    tmp = os.listdir(os.getcwd())
-    prediction_arrays_zips = [elem for elem in tmp if elem.startswith(prefix_name) & elem.endswith('zip')]
+    s3_download_object(prediction_dirpath, task_manager.S3_path, prefix_name)
+    prediction_filenames = os.listdir(prediction_dirpath)
+    prediction_arrays_zips = [elem for elem in prediction_filenames if elem.startswith(prefix_name) & elem.endswith('zip')]
     
     for prediction_arrays_zip in prediction_arrays_zips:
         
