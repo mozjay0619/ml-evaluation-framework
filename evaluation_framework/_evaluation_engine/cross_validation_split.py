@@ -76,28 +76,28 @@ class DateRollingWindowSplit(BaseRollingWindowSplit):
 
             train = indices[(head_date_idx <= self.orderby) & 
                             (self.orderby < head_date_idx + self.num_train_days)]
+
             test = indices[(head_date_idx + self.num_train_days <= self.orderby) & 
                            (self.orderby < head_date_idx + self.num_train_days + self.num_test_days)]
 
             head_date_idx += self.num_test_days
 
-            if(len(train)<self.min_num_train_days or len(test)==0):
+            num_unique_days = len(np.unique(self.orderby[train]))
+
+            if(num_unique_days<self.min_num_train_days or len(test)==0):
+
                 continue
-            
+                
             yield train, test
             
     def get_n_splits(self, X=None, y=None, groups=None):
         
-        head_date_idx = 0
-        last_date_idx = self.orderby.max()
-        train_data_cnt = 0
+        split_cnt = 0
         
-        while(head_date_idx + self.num_train_days <= last_date_idx):
-
-            head_date_idx += self.num_test_days
-            train_data_cnt += 1
+        for i in cv._iter_indices(X=self.orderby, y=None, groups=None):
+            split_cnt+=1
             
-        return train_data_cnt
+        return split_cnt
 
     def split(self, X, y=None, groups=None):
         return super().split(X, y, groups)
