@@ -82,8 +82,14 @@ class ConfigSetter():
 
         return True
 
-
     def define_helper_columns(self):
+
+        # create key column to join the predictions
+        key_column = np.arange(len(self.data)).astype(np.float32)
+        self.data[constants.EF_UUID_NAME] = key_column
+
+        # assuming data validation was done before...
+        self.numeric_types.append(constants.EF_UUID_NAME)
 
         if(self.return_predictions):
 
@@ -92,13 +98,6 @@ class ConfigSetter():
             # makes sense to join the predictions on self.data since that data is already
             # loaded in memory. It would be expensive to re-load it into memory, esp. if it
             # is really big.
-
-            # create key column to join the predictions
-            key_column = np.arange(len(self.data)).astype(np.float32)
-            self.data[constants.EF_UUID_NAME] = key_column
-
-            # assuming data validation was done before...
-            self.numeric_types.append(constants.EF_UUID_NAME)
 
         if(self.orderby):
 
@@ -183,9 +182,9 @@ class ConfigSetter():
         self._validate_s3_path()
         self._validate_estimator()
         self._validate_helper_columns()
+        self._validate_data()
         self._validate_target_name()
         self._validate_feature_names()
-        self._validate_data()
         self._validate_hyperparameters()
         self._validate_return_predictions()
         return True
