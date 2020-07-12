@@ -456,7 +456,7 @@ class EvaluationEngine():
         self.taskq.join()
 
         res = self.taskq.get_results()
-        res_pdf = pd.DataFrame(res, columns=['group_key', 'test_idx', 'eval_result', 'data_count'])
+        res_pdf = pd.DataFrame(res, columns=['group_key', 'test_idx', 'eval_result', 'train_size', 'test_size', 'duration'])
         return res_pdf.sort_values(by=['group_key', 'test_idx']).reset_index(drop=True)
 
         return res

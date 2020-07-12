@@ -68,7 +68,7 @@ class TaskGraph():
             if self.task_manager.return_predictions:
                 self.record_predictions(group_key, cv_split_index, prediction_result, test_data, test_idx)
 
-        return (group_key, cv_split_index, evaluation_result, len(prediction_result))
+        return (group_key, cv_split_index, evaluation_result, self.train_data_size, self.test_data_size, self.task_duration)
 
     def get_data(self, group_key, cv_split_index):
 
@@ -90,6 +90,8 @@ class TaskGraph():
         return train_data, test_data, train_idx, test_idx
 
     def task_graph(self, train_data, test_data, group_key):  # groupkey is redundant info get rid of it
+
+        task_start_time = time.time()
         
         configs = self.task_manager.user_configs
         
@@ -98,6 +100,8 @@ class TaskGraph():
             train_data, 
             configs)
         if self.verbose: print('Completed preprocess_train_data:', time.time() - start_time)
+
+        self.train_data_size = len(preprocessed_train_data)
         
         if self.verbose: start_time = time.time()
         trained_estimator = self.task_manager.model_fit(
@@ -123,11 +127,15 @@ class TaskGraph():
            self.task_manager.target_name)
         if self.verbose: print('Completed model_predict:', time.time() - start_time)
 
+        self.test_data_size = len(prediction_result)
+
         if self.verbose: start_time = time.time()
         evaluation_result = self.task_manager.evaluate_prediction(
            preprocessed_test_data, 
            prediction_result[constants.EF_PREDICTION_NAME])
         if self.verbose: print('Completed evaluate_prediction:', time.time() - start_time)
+
+        self.task_duration = time.time() - task_start_time
 
         return (prediction_result, evaluation_result)
         
