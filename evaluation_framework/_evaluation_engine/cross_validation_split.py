@@ -94,7 +94,7 @@ class DateRollingWindowSplit(BaseRollingWindowSplit):
         
         split_cnt = 0
         
-        for i in cv._iter_indices(X=self.orderby, y=None, groups=None):
+        for i in self._iter_indices(X=self.orderby, y=None, groups=None):
             split_cnt+=1
             
         return split_cnt
