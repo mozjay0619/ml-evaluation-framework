@@ -149,7 +149,7 @@ def _write_memmap_filesys(task_manager, root_dirpath):
         f.set_node_attr('/{}'.format(f.group_names[i]), key='numeric_keys', value=task_manager.numeric_types)
         f.set_node_attr('/{}'.format(f.group_names[i]), key='missing_keys', value=task_manager.missing_keys)
 
-    group_key_size_tuples = sorted(zip(f.group_names, f.group_sizes), key=lambda x: x[1])
+    group_key_size_tuples = sorted(zip(f.group_names, f.group_sizes), key=lambda x: x[1], reverse=True)
     sorted_group_keys = [elem[0] for elem in group_key_size_tuples]
     f.set_node_attr('/', key='sorted_group_keys', value=sorted_group_keys)
 
