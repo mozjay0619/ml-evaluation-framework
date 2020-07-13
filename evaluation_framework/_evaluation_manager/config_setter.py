@@ -438,7 +438,7 @@ class ConfigSetter():
         #     # raise warning!
         #     self.data[k] = cast_numeric2float32(self.data[k])
 
-        type_dict = {elem:np.float32 for elem in featurself.numeric_typese_names}
+        type_dict = {elem: np.float32 for elem in self.numeric_types}
         self.data = self.data.astype(type_dict)
 
         self.original_colnames = self.data.columns.to_list()
