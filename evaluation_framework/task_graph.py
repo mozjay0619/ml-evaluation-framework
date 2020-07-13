@@ -108,7 +108,7 @@ class TaskGraph():
         if self.verbose: start_time = time.time()
         trained_estimator = self.task_manager.model_fit(
            preprocessed_train_data, 
-           self.task_manager.hyperparameters, 
+           self.task_manager.hyperparameters[group_key], 
            self.task_manager.estimator,
            self.task_manager.feature_names[group_key],
            self.task_manager.target_name)
