@@ -102,6 +102,8 @@ class TaskGraph():
         if self.verbose: print('Completed preprocess_train_data:', time.time() - start_time)
 
         self.train_data_size = len(preprocessed_train_data)
+
+        print(self.task_manager.hyperparameters)
         
         if self.verbose: start_time = time.time()
         trained_estimator = self.task_manager.model_fit(
