@@ -75,7 +75,7 @@ class TaskGraph():
 
 
         memmap_root_dirpath = os.path.join(os.getcwd(), self.task_manager.memmap_root_dirname)
-        memmap_map_filepath = os.path.join(memmap_root_dirpath, constants.EF_MEMMAP_MAP_NAME)
+        memmap_map_filepath = os.path.join(memmap_root_dirpath, constants.HMF_MEMMAP_MAP_NAME)
         self.memmap_map = load_obj(memmap_map_filepath)
         
         train_idx, test_idx, date_range = self._get_cross_validation_fold_idx(self.memmap_map, group_key, cv_split_index)
