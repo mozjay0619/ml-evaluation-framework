@@ -10,6 +10,7 @@ from evaluation_framework.utils.objectIO_utils import save_obj
 from evaluation_framework.utils.objectIO_utils import load_obj
 from evaluation_framework.utils.memmap_utils import write_memmap
 from evaluation_framework.utils.memmap_utils import read_memmap
+from evaluation_framework.utils.fileIO_utils import clean_dir
 from ._evaluation_engine.cross_validation_split import get_cv_splitter
 from .task_graph import TaskGraph
 from evaluation_framework import constants
@@ -125,9 +126,11 @@ class EvaluationEngine():
             n_worker_nodes, use_yarn_cluster, use_auto_config, instance_type)
 
         self.has_dask_client = False
-        self.has_data = False
+        self.has_prediction = False
         
     def run_evaluation(self, evaluation_manager, debug_mode=False):
+
+        self.has_prediction = False
 
         self.data = evaluation_manager.data
 
@@ -498,31 +501,55 @@ class EvaluationEngine():
 
     def get_prediction_results(self, group_key=None):
 
-        self.taskq.join()
+        if not self.has_prediction:
 
-        if self.use_yarn_cluster:
+            self.taskq.join()
 
-            print("\n\u2714 Uploading remote prediction results...   ", end="", flush=True)
-            self.dask_client.submit_per_node(upload_remote_data, self.task_manager)
-            print('Completed!')
+            if self.use_yarn_cluster:
 
-            print("\n\u2714 Downloading remote prediction results... ", end="", flush=True)
-            download_remote_data(self.task_manager)
-            print('Completed!')
+                print("\n\u2714 Uploading remote prediction results...   ", end="", flush=True)
+                self.dask_client.submit_per_node(upload_remote_data, self.task_manager)
+                print('Completed!')
 
-        prediction_dirpath = os.path.join(self.task_manager.evaluation_task_dirpath, self.task_manager.prediction_records_dirname)
-        prediction_filenames = os.listdir(prediction_dirpath)
+                print("\n\u2714 Downloading remote prediction results... ", end="", flush=True)
+                download_remote_data(self.task_manager)
+                print('Completed!')
 
-        prediction_filepaths = [os.path.join(prediction_dirpath, elem) for elem in prediction_filenames]
-        prediction_filepaths = [elem for elem in prediction_filepaths if elem.split('.')[-1]=='npy']
+            prediction_dirpath = os.path.join(self.task_manager.evaluation_task_dirpath, self.task_manager.prediction_records_dirname)
+            prediction_filenames = os.listdir(prediction_dirpath)
 
-        prediction_array = np.vstack([np.load(elem) for elem in prediction_filepaths])
-        prediction_array = prediction_array[prediction_array[:, 0].argsort()]
+            prediction_filepaths = [os.path.join(prediction_dirpath, elem) for elem in prediction_filenames]
+            prediction_filepaths = [elem for elem in prediction_filepaths if elem.split('.')[-1]=='npy']
 
-        prediction_pdf = pd.DataFrame(prediction_array, columns=[constants.EF_UUID_NAME, constants.EF_PREDICTION_NAME])
-        prediction_pdf.set_index(constants.EF_UUID_NAME, inplace=True)
-        prediction_pdf = prediction_pdf.reindex(range(0, len(self.data)), fill_value=np.nan)
-        self.data[constants.EF_PREDICTION_NAME] = prediction_pdf[constants.EF_PREDICTION_NAME]
-        
-        return self.data.drop(labels=constants.EF_UUID_NAME, axis=1, inplace=False)
+            prediction_array = np.vstack([np.load(elem) for elem in prediction_filepaths])
+            prediction_array = prediction_array[prediction_array[:, 0].argsort()]
+
+            prediction_pdf = pd.DataFrame(prediction_array, columns=[constants.EF_UUID_NAME, constants.EF_PREDICTION_NAME])
+            prediction_pdf.set_index(constants.EF_UUID_NAME, inplace=True)
+            prediction_pdf = prediction_pdf.reindex(range(0, len(self.data)), fill_value=np.nan)
+            self.data[constants.EF_PREDICTION_NAME] = prediction_pdf[constants.EF_PREDICTION_NAME]
+
+            self.has_prediction = True
+            clean_dir(prediction_dirpath)
+            
+            return self.data.drop(labels=[
+                constants.EF_UUID_NAME, 
+                constants.EF_ORDERBY_NAME,
+                constants.HMF_MEMMAP_MAP_NAME,
+                constants.HMF_GROUPBY_NAME], axis=1, inplace=False, errors='ignore')
+
+        else:
+
+            return self.data.drop(labels=[
+                constants.EF_UUID_NAME, 
+                constants.EF_ORDERBY_NAME,
+                constants.HMF_MEMMAP_MAP_NAME,
+                constants.HMF_GROUPBY_NAME], axis=1, inplace=False, errors='ignore')
+
+
+
+
+
+
+
 
