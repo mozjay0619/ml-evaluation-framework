@@ -25,6 +25,7 @@ ORDERED_CV_SCHEMES = ['date_rolling_window']
 CV_OPTIONAL_ARGUMENTS = ['orderby', 'train_window', 'min_train_window', 'test_window']
 OPTIONAL_ARGUMENTS = ['groupby', 'hyperparameters', 'user_configs', 'S3_path', 'user_configs', 'return_predictions']
 CV_SCHEME_OPTIONS = ['date_rolling_window', 'k_fold', 'binary_classification']
+INTERNAL_ARGUMENTS = ['prediction_records_dirname']
 REQUIRED_ESTIMATOR_MEMBER_METHODS = ['fit', 'predict']
 FIT_METHOD_PARAMETERS_PARAMETER_NAME = 'parameters'
 
@@ -148,7 +149,7 @@ class ConfigSetter():
         
         required_args = []
         for k, v in self.__dict__.items():
-            if v is None and k not in OPTIONAL_ARGUMENTS + CV_OPTIONAL_ARGUMENTS:
+            if v is None and k not in OPTIONAL_ARGUMENTS + CV_OPTIONAL_ARGUMENTS + INTERNAL_ARGUMENTS:
                 required_args.append(k)
                 
         return required_args
