@@ -45,11 +45,14 @@ class MultiThreadTaskQueue(queue.Queue):
         while True:
             task, args, kwargs = self.get()
             result = task(*args, **kwargs)
-            self.results.append(result)
+            self.results.append(list(result))
             self.task_done()
 
     def get_results(self):
         return self.results
+
+    def flush_results(self):
+        self.results = []
 
 
 class DualClientFuture():

@@ -39,14 +39,18 @@ class ConfigSetter():
         self.datetime_types = []
         self.numeric_types = []
         self.original_colnames = []
+
+        self.job_uuid = str(datetime.datetime.now()).replace(" ", '-')
         
-    def set_configs(self, *, estimator=None,
+    def set_configs(self, *, local_data_saved=False, estimator=None,
                     data=None, target_name=None, feature_names=None, 
                     hyperparameters=None, cross_validation_scheme=None,
                     groupby=None, 
                     orderby=None, train_window=None, min_train_window=None, test_window=None,
                     user_configs=None, local_directory_path=None, S3_path=None, 
                     return_predictions=None, **kwargs):
+
+        self.local_data_saved = local_data_saved
         
         self.estimator = estimator
         self.data = data
@@ -64,6 +68,8 @@ class ConfigSetter():
         self.S3_path = S3_path
         self.return_predictions = return_predictions
 
+
+
         print("\u2714 Checking configs requirements...    ", end="", flush=True)
 
         if not self.passed_arguments_requirements():
@@ -79,6 +85,8 @@ class ConfigSetter():
             print("Passed!")
 
         self.define_helper_columns()
+
+        
 
         return True
 
@@ -182,7 +190,14 @@ class ConfigSetter():
         self._validate_s3_path()
         self._validate_estimator()
         self._validate_helper_columns()
-        self._validate_data()
+
+        if not self.local_data_saved:
+
+            self._validate_data()
+            # self.data = self.data.astype(type_dict)
+            # is creating a copy
+            # we need some other way to deal with this
+
         self._validate_target_name()
         self._validate_feature_names()
         self._validate_hyperparameters()
@@ -273,7 +288,7 @@ class ConfigSetter():
             os.makedirs(self.local_directory_path)
             
         self.initial_dirpath = os.getcwd()
-        self.job_uuid = str(datetime.datetime.now()).replace(" ", '-')
+        
 
         self.evaluation_task_dirname = "evaluation_task__{}".format(self.job_uuid)
         self.evaluation_task_dirpath = os.path.join(self.local_directory_path, self.evaluation_task_dirname)
