@@ -41,8 +41,8 @@ class BaseRollingWindowSplit(metaclass=ABCMeta):
     
     def split(self, X, y=None, groups=None):
         X, y, groups = indexable(X, y, groups)
-        for train, test in self._iter_indices(X, y, groups):
-            yield train, test
+        for train, test, date_range in self._iter_indices(X, y, groups):
+            yield train, test, date_range
     
     @abstractmethod
     def _iter_indices(self, X, y=None, groups=None):
@@ -80,6 +80,8 @@ class DateRollingWindowSplit(BaseRollingWindowSplit):
             test = indices[(head_date_idx + self.num_train_days <= self.orderby) & 
                            (self.orderby < head_date_idx + self.num_train_days + self.num_test_days)]
 
+            current_head_date_idx = head_date_idx
+
             head_date_idx += self.num_test_days
 
             num_unique_days = len(np.unique(self.orderby[train]))
@@ -87,8 +89,10 @@ class DateRollingWindowSplit(BaseRollingWindowSplit):
             if(num_unique_days<self.min_num_train_days or len(test)==0):
 
                 continue
-                
-            yield train, test
+
+            yield(train, test, 
+                np.arange(current_head_date_idx + self.num_train_days, 
+                    min(current_head_date_idx + self.num_train_days + self.num_test_days, last_date_idx+1)))
             
     def get_n_splits(self, X=None, y=None, groups=None):
         

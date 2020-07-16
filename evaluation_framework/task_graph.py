@@ -46,7 +46,7 @@ class TaskGraph():
 
             try:
                 
-                train_data, test_data, train_idx, test_idx = self.get_data(group_key, cv_split_index)
+                train_data, test_data, train_idx, test_idx, date_range = self.get_data(group_key, cv_split_index)
                 prediction_result, evaluation_result = self.task_graph(train_data, test_data, group_key)
 
                 if self.task_manager.return_predictions:
@@ -62,13 +62,13 @@ class TaskGraph():
 
         if not succeeded:
 
-            train_data, test_data, train_idx, test_idx = self.get_data(group_key, cv_split_index)
+            train_data, test_data, train_idx, test_idx, date_range = self.get_data(group_key, cv_split_index)
             prediction_result, evaluation_result = self.task_graph(train_data, test_data, group_key)
 
             if self.task_manager.return_predictions:
                 self.record_predictions(group_key, cv_split_index, prediction_result, test_data, test_idx)
 
-        return (group_key, cv_split_index, evaluation_result, self.train_data_size, self.test_data_size, self.task_duration)
+        return (group_key, cv_split_index, evaluation_result, self.train_data_size, self.test_data_size, list(date_range), self.task_duration)
 
     def get_data(self, group_key, cv_split_index):
 
@@ -78,7 +78,7 @@ class TaskGraph():
         memmap_map_filepath = os.path.join(memmap_root_dirpath, constants.EF_MEMMAP_MAP_NAME)
         self.memmap_map = load_obj(memmap_map_filepath)
         
-        train_idx, test_idx = self._get_cross_validation_fold_idx(self.memmap_map, group_key, cv_split_index)
+        train_idx, test_idx, date_range = self._get_cross_validation_fold_idx(self.memmap_map, group_key, cv_split_index)
 
         if self.verbose:
             print('train size: {}'.format(len(train_idx)))
@@ -87,7 +87,7 @@ class TaskGraph():
         train_data = self._read_memmap(self.memmap_map, group_key, train_idx)
         test_data = self._read_memmap(self.memmap_map, group_key, test_idx)
 
-        return train_data, test_data, train_idx, test_idx
+        return train_data, test_data, train_idx, test_idx, date_range
 
     def task_graph(self, train_data, test_data, group_key):  # groupkey is redundant info get rid of it
 
@@ -148,17 +148,6 @@ class TaskGraph():
 
         data_arrays = [self.f.get_array('/{}/numeric_types'.format(group_key), idx=data_idx)]
 
-
-        # print(missing_keys)
-    
-        # missing_keys = memmap_map['groups'][group_key]['attributes']['missing_keys']
-        # data_colnames = copy.copy(memmap_map['groups'][group_key]['attributes']['numeric_keys']) 
-
-        # filepath = os.path.join(memmap_map['dirpath'], memmap_map['groups'][group_key]['arrays']['numeric_types']['dirpath'])
-        # dtype = memmap_map['groups'][group_key]['arrays']['numeric_types']['dtype']
-        # shape = memmap_map['groups'][group_key]['arrays']['numeric_types']['shape']
-        # data_arrays = [read_memmap(filepath, dtype, shape, data_idx)]
-
         for colname in missing_keys['datetime_types']:
 
             tmp_array = self.f.get_array('/{}/{}'.format(group_key, colname))
@@ -184,49 +173,31 @@ class TaskGraph():
     
     def _get_cross_validation_fold_idx(self, memmap_map, group_key, cv_split_index):
 
-
-
-
-
         
         if self.task_manager.orderby:  # have another parameter to check orderby needs to happen...
             # by cv scheme itself!
             
             # need to add random state
 
-
             group_ordered_array = self.f.get_array('/{}/orderby_array'.format(group_key))
 
-
-            # filepath = os.path.join(memmap_map['dirpath'], memmap_map['groups'][group_key]['arrays']['orderby_array']['dirpath'])
-            # dtype = memmap_map['groups'][group_key]['arrays']['orderby_array']['dtype']
-            # shape = memmap_map['groups'][group_key]['arrays']['orderby_array']['shape']
-            # group_ordered_array = read_memmap(filepath, dtype, shape)
-
-            for idx, (train, test) in enumerate(self.cv.split(group_ordered_array)):
+            for idx, (train, test, date_range) in enumerate(self.cv.split(group_ordered_array)):
                 if idx == cv_split_index:
                     break
         
-        return train, test
+        return train, test, date_range
     
     def record_predictions(self, group_key, cv_split_index, prediction_result, test_data, test_idx):
         """memmap['groups'][group_key]['groups'][group_key_innder]['arrays'][filepath, dtype, shape]
 
         """
 
-
         if self.verbose: start_time = time.time()
-
 
         test_data_prediction = test_data.merge(prediction_result, on=constants.EF_UUID_NAME, how='inner')
 
-
-
         predictions_array = test_data_prediction[[constants.EF_UUID_NAME, constants.EF_PREDICTION_NAME]]
         predictions_array = predictions_array.values.astype(np.float32)
-
-
-        
 
         filename = '__'.join((group_key, str(cv_split_index))) + '.npy'
         filepath = os.path.join(os.getcwd(), self.task_manager.prediction_records_dirname, filename)
