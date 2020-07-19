@@ -139,10 +139,6 @@ class DualClientFuture():
                 print('remainder: {}, n_local_worker: {}, running on local'.format(remainder, self.local_client_n_workers))
 
             future = self.local_client.submit(func, *args, **kwargs)
-
-
-            
-        
         
         return future.result()
     

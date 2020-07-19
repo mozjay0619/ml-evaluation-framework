@@ -30,6 +30,12 @@ METHOD_SETTER_KEYS = [
 "evaluate_prediction"
 ]
 
+FINAL_CONFIG_KEYS = [
+'data',
+'groupby',
+'orderby'
+]
+
 
 class EvaluationManager():
     
@@ -59,7 +65,12 @@ class EvaluationManager():
 
         # must have used eval engine first, otherwise no use
         # can't update data or groupby or order by
-        # 
+        
+        for k in FINAL_CONFIG_KEYS:
+            if k in kwargs:
+
+                raise ValueError('You cannot update the following setup arguments: [ {} ]'.format(
+                            ', '.join(FINAL_CONFIG_KEYS)))
 
         temp_dict = dict()
 
