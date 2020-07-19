@@ -394,6 +394,8 @@ class ConfigSetter():
         if len(self.data)==0:
             print('Failed!')
             raise ValueError('[ data ] is empty dataframe.')
+
+        self.data = self.data.reset_index(drop=True)
             
         self.str_types = []
         self.date_str_types = []
