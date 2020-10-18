@@ -43,8 +43,11 @@ def default_model_fit(preprocessed_train_data, hyperparameters, estimator, featu
         # read from memmap
     else:
         y = preprocessed_train_data[target_name]
-        
-    estimator.fit(X, y, hyperparameters)
+    
+    if hyperparameters is None:
+        estimator.fit(X, y)
+    else:
+        estimator.fit(X, y, hyperparameters)
     
     return estimator
     
