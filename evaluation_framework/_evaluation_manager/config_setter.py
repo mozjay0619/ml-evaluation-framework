@@ -34,7 +34,7 @@ class ConfigSetter():
     
     def __init__(self):
         
-        self.dummy_region_uuid = 'dummy_region'
+        self.dummy_region_uuid = constants.EF_DUMMY_GROUP_COLUMN_NAME
 
         self.str_types = []
         self.datetime_types = []
