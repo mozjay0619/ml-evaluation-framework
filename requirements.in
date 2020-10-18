@@ -2,7 +2,6 @@ pandas
 numpy
 dask
 distributed 
-s3fs
 dask-yarn
 msgpack==1.0.0
 pyarrow
