@@ -75,8 +75,9 @@ class TaskGraph():
 
 
         memmap_root_dirpath = os.path.join(os.getcwd(), self.task_manager.memmap_root_dirname)
-        memmap_map_filepath = os.path.join(memmap_root_dirpath, constants.HMF_MEMMAP_MAP_NAME)
+        memmap_map_filepath = os.path.join(memmap_root_dirpath, constants.HMF_MEMMAP_MAP_NAME + '0')
         self.memmap_map = load_obj(memmap_map_filepath)
+        # self.memmap_map = self.f.memmap_map
         
         train_idx, test_idx, date_range = self._get_cross_validation_fold_idx(self.memmap_map, group_key, cv_split_index)
 
@@ -103,12 +104,15 @@ class TaskGraph():
 
         self.train_data_size = len(preprocessed_train_data)
 
-        print(self.task_manager.hyperparameters)
+        if self.task_manager.hyperparameters is not None:
+            hyperparameters = self.task_manager.hyperparameters[group_key]
+        else:
+            hyperparameters = None
         
         if self.verbose: start_time = time.time()
         trained_estimator = self.task_manager.model_fit(
            preprocessed_train_data, 
-           self.task_manager.hyperparameters[group_key], 
+           hyperparameters, 
            self.task_manager.estimator,
            self.task_manager.feature_names[group_key],
            self.task_manager.target_name)
