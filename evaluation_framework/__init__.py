@@ -1,26 +1,28 @@
 
-__version__ = "0.0.b62"
+__version__ = "0.0.b63"
 
 
 
-from ._evaluation_manager.config_setter import ConfigSetter
-from ._evaluation_manager.method_setter import MethodSetter
+from .evaluation_manager_core.config_setter import ConfigSetter
+from .evaluation_manager_core.method_setter import MethodSetter
 
 from .evaluation_manager import EvaluationManager
 
-from ._evaluation_engine.data_loader import load_local_data
-from ._evaluation_engine.data_loader import upload_local_data
-from ._evaluation_engine.data_loader import download_local_data
-from ._evaluation_engine.data_loader import upload_remote_data
-from ._evaluation_engine.data_loader import download_remote_data
+# from .evaluation_engine_core.data_loader import load_local_data
 
-from ._evaluation_engine.dask_futures import MultiThreadTaskQueue
-from ._evaluation_engine.dask_futures import ClientFuture
-from ._evaluation_engine.dask_futures import DualClientFuture
-from ._evaluation_engine.cross_validation_split import DateRollingWindowSplit
-from ._evaluation_engine.cross_validation_split import get_cv_splitter
+from .evaluation_engine_core.data_transferer import upload_local_data
+from .evaluation_engine_core.data_transferer import download_local_data
+from .evaluation_engine_core.data_transferer import upload_remote_data
+from .evaluation_engine_core.data_transferer import download_remote_data
 
-from .task_graph import TaskGraph
+# from .evaluation_engine_core.parallel.dask_client_base import MultiThreadTaskQueue
+# from .evaluation_engine_core.parallel.dask_client_base import ClientFuture
+# from .evaluation_engine_core.parallel.dask_client_base import DualClientFuture
+
+from .task_graph.cross_validation_split import DateRollingWindowSplit
+from .task_graph.cross_validation_split import get_cv_splitter
+
+from .task_graph.task_graph import TaskGraph
 
 from evaluation_framework.utils.objectIO_utils import save_obj
 from evaluation_framework.utils.objectIO_utils import load_obj

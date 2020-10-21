@@ -1,52 +1,5 @@
-from evaluation_framework.utils.pandas_utils import cast_datetime2int64
-from evaluation_framework.utils.pandas_utils import cast_int64_2datetime
-from evaluation_framework.utils.pandas_utils import encode_str2bytes
-from evaluation_framework.utils.pandas_utils import encode_date_sequence
-from evaluation_framework.utils.s3_utils import s3_upload_object
-from evaluation_framework.utils.s3_utils import s3_download_object
-from evaluation_framework.utils.s3_utils import s3_upload_zip_dir
-from evaluation_framework.utils.s3_utils import s3_delete_object
-from evaluation_framework.utils.zip_utils import unzip_dir
-from evaluation_framework.utils.objectIO_utils import save_obj
-from evaluation_framework.utils.objectIO_utils import load_obj
-from evaluation_framework.utils.memmap_utils import write_memmap
-from evaluation_framework.utils.memmap_utils import read_memmap
-from evaluation_framework.utils.decorator_utils import failed_method_retry
-from evaluation_framework import constants
-
-import HMF
-
-import os
-import shutil
-from collections import namedtuple
-import pickle
-import numpy as np
-import time
 
 
-@failed_method_retry
-def load_local_data(evaluation_manager):
-
-    memmap_root_dirpath = os.path.join(os.getcwd(), evaluation_manager.memmap_root_dirname)
-
-    try:
-        os.makedirs(memmap_root_dirpath)
-    except:
-        shutil.rmtree(memmap_root_dirpath)
-        os.makedirs(memmap_root_dirpath)
-
-    if evaluation_manager.return_predictions:
-
-        prediction_records_dirpath = os.path.join(os.getcwd(), evaluation_manager.prediction_records_dirname)
-
-        try:
-            os.makedirs(prediction_records_dirpath)
-        except:
-            shutil.rmtree(prediction_records_dirpath)
-            os.makedirs(prediction_records_dirpath)
-
-    memmap_map = _write_memmap_filesys(evaluation_manager, memmap_root_dirpath)
-    return memmap_map
 
 def upload_local_data(task_manager):
 
@@ -123,35 +76,3 @@ def download_remote_data(task_manager):
         zipped_filepath = os.path.join(prediction_dirpath, prediction_arrays_zip)
         unzip_dir(zipped_filepath, prediction_dirpath)
         
-def _write_memmap_filesys(task_manager, root_dirpath):
-    """memmap mimicking hdf5 filesystem. 
-    root_dirpath/
-        memmap_map
-        groupA__groupA'__arrayA (array)
-        groupA__groupA'__arrayB (array)  
-        ... etc
-
-
-    root_dirpath / group_dirpath / filepath
-    memmap['groups'][group_key]['groups'][group_key_innder]['arrays'][filepath, dtype, shape]
-
-    """
-
-    f = HMF.open_file(root_dirpath, mode='w+')
-
-    f.from_pandas(task_manager.data, groupby=task_manager.groupby, orderby=task_manager.orderby)
-
-    f.register_array('numeric_types', task_manager.numeric_types)
-    f.register_array('orderby_array', constants.EF_ORDERBY_NAME)
-
-    for i in range(len(f.group_names)):
-
-        f.set_node_attr('/{}'.format(f.group_names[i]), key='numeric_keys', value=task_manager.numeric_types)
-        f.set_node_attr('/{}'.format(f.group_names[i]), key='missing_keys', value=task_manager.missing_keys)
-
-    group_key_size_tuples = sorted(zip(f.group_names, f.group_sizes), key=lambda x: x[1], reverse=True)
-    sorted_group_keys = [elem[0] for elem in group_key_size_tuples]
-    f.set_node_attr('/', key='sorted_group_keys', value=sorted_group_keys)
-
-    f.close()
-

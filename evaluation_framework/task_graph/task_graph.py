@@ -34,10 +34,10 @@ class TaskGraph():
 
         # 
 
-    def run(self, group_key, cv_split_index):   
+    def run(self, group_key, cv_split_index, data_loader):   
 
-        root_dirpath = os.path.join(os.getcwd(), self.task_manager.memmap_root_dirname)
-        self.f = HMF.open_file(root_dirpath, mode='r+')
+        # root_dirpath = os.path.join(os.getcwd(), self.task_manager.memmap_root_dirname)
+        # self.f = HMF.open_file(root_dirpath, mode='r+')
 
         attempts = 0
         succeeded = False
@@ -46,7 +46,7 @@ class TaskGraph():
 
             try:
                 
-                train_data, test_data, train_idx, test_idx, date_range = self.get_data(group_key, cv_split_index)
+                train_data, test_data, train_idx, test_idx, date_range = self.get_data(group_key, cv_split_index, data_loader)
                 prediction_result, evaluation_result = self.task_graph(train_data, test_data, group_key)
 
                 if self.task_manager.return_predictions:
@@ -62,7 +62,7 @@ class TaskGraph():
 
         if not succeeded:
 
-            train_data, test_data, train_idx, test_idx, date_range = self.get_data(group_key, cv_split_index)
+            train_data, test_data, train_idx, test_idx, date_range = self.get_data(group_key, cv_split_index, data_loader)
             prediction_result, evaluation_result = self.task_graph(train_data, test_data, group_key)
 
             if self.task_manager.return_predictions:
@@ -70,23 +70,26 @@ class TaskGraph():
 
         return (group_key, cv_split_index, evaluation_result, self.train_data_size, self.test_data_size, list(date_range), self.task_duration)
 
-    def get_data(self, group_key, cv_split_index):
+    def get_data(self, group_key, cv_split_index, data_loader):
 
 
 
-        memmap_root_dirpath = os.path.join(os.getcwd(), self.task_manager.memmap_root_dirname)
-        memmap_map_filepath = os.path.join(memmap_root_dirpath, constants.HMF_MEMMAP_MAP_NAME + '0')
-        self.memmap_map = load_obj(memmap_map_filepath)
+        # memmap_root_dirpath = os.path.join(os.getcwd(), self.task_manager.memmap_root_dirname)
+        # memmap_map_filepath = os.path.join(memmap_root_dirpath, constants.HMF_MEMMAP_MAP_NAME + '0')
+        # self.memmap_map = load_obj(memmap_map_filepath)
         # self.memmap_map = self.f.memmap_map
+
+        memmap_map = data_loader.f.memmap_map
+
         
-        train_idx, test_idx, date_range = self._get_cross_validation_fold_idx(self.memmap_map, group_key, cv_split_index)
+        train_idx, test_idx, date_range = self._get_cross_validation_fold_idx(memmap_map, group_key, cv_split_index, data_loader)
 
         if self.verbose:
             print('train size: {}'.format(len(train_idx)))
             print('test_size: {}'.format(len(test_idx)))
 
-        train_data = self._read_memmap(self.memmap_map, group_key, train_idx)
-        test_data = self._read_memmap(self.memmap_map, group_key, test_idx)
+        train_data = self._read_memmap(memmap_map, group_key, train_idx, data_loader)
+        test_data = self._read_memmap(memmap_map, group_key, test_idx, data_loader)
 
         return train_data, test_data, train_idx, test_idx, date_range
 
@@ -145,16 +148,16 @@ class TaskGraph():
 
         return (prediction_result, evaluation_result)
         
-    def _read_memmap(self, memmap_map, group_key, data_idx):
+    def _read_memmap(self, memmap_map, group_key, data_idx, data_loader):
 
-        missing_keys = self.f.get_node_attr('/{}'.format(group_key), key='missing_keys')
-        data_colnames = copy.copy(self.f.get_node_attr('/{}'.format(group_key), key='numeric_keys'))
+        missing_keys = data_loader.f.get_node_attr('/{}'.format(group_key), key='missing_keys')
+        data_colnames = copy.copy(data_loader.f.get_node_attr('/{}'.format(group_key), key='numeric_keys'))
 
-        data_arrays = [self.f.get_array('/{}/numeric_types'.format(group_key), idx=data_idx)]
+        data_arrays = [data_loader.f.get_array('/{}/numeric_types'.format(group_key), idx=data_idx)]
 
         for colname in missing_keys['datetime_types']:
 
-            tmp_array = self.f.get_array('/{}/{}'.format(group_key, colname))
+            tmp_array = data_loader.f.get_array('/{}/{}'.format(group_key, colname))
 
             data_arrays.append(tmp_array.reshape(-1, 1))
             data_colnames.append(colname)
@@ -167,7 +170,7 @@ class TaskGraph():
             
         for colname in missing_keys['str_types']:
 
-            tmp_array = self.f.get_array('/{}/{}'.format(group_key, colname))
+            tmp_array = data_loader.f.get_array('/{}/{}'.format(group_key, colname))
 
             tmp_array = tmp_array.astype(str)
             pdf[colname] = tmp_array
@@ -175,7 +178,7 @@ class TaskGraph():
         
         return pdf
     
-    def _get_cross_validation_fold_idx(self, memmap_map, group_key, cv_split_index):
+    def _get_cross_validation_fold_idx(self, memmap_map, group_key, cv_split_index, data_loader):
 
         
         if self.task_manager.orderby:  # have another parameter to check orderby needs to happen...
@@ -183,7 +186,7 @@ class TaskGraph():
             
             # need to add random state
 
-            group_ordered_array = self.f.get_array('/{}/orderby_array'.format(group_key))
+            group_ordered_array = data_loader.f.get_array('/{}/orderby_array'.format(group_key))
 
             for idx, (train, test, date_range) in enumerate(self.cv.split(group_ordered_array)):
                 if idx == cv_split_index:

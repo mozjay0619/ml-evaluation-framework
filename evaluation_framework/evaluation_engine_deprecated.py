@@ -1,11 +1,6 @@
-# from .evaluation_engine_core.parallel.dask_client_future import MultiThreadTaskQueue
-# from .evaluation_engine_core.parallel.dask_client_future import DualClientFuture
-# from .evaluation_engine_core.parallel.dask_client_future import ClientFuture
-
-from .evaluation_engine_core.parallel.dask_resource_configurer import DaskResourceConfigurer
-from .evaluation_engine_core.parallel.dask_client import DaskClient
-
-from .evaluation_engine_core.data_loader import DataLoader
+from .evaluation_engine_core.parallel.dask_client_future import MultiThreadTaskQueue
+from .evaluation_engine_core.parallel.dask_client_future import DualClientFuture
+from .evaluation_engine_core.parallel.dask_client_future import ClientFuture
 
 # from .evaluation_engine_core.data_loader import load_local_data
 
@@ -37,6 +32,37 @@ import copy
 
 
 
+# INSTANCE_TYPES = {
+#     'm4.large': {'vCPU': 2, 'Mem': 8},
+#     'm4.xlarge': {'vCPU': 4, 'Mem': 16}, 
+#     'm4.2xlarge': {'vCPU': 8, 'Mem': 32},
+#     'm4.4xlarge': {'vCPU': 16, 'Mem': 64},
+#     'm4.10xlarge': {'vCPU': 40, 'Mem': 160},
+#     'm4.16xlarge': {'vCPU': 64, 'Mem': 256}, 
+    
+#     'c4.large': {'vCPU': 2, 'Mem': 3.75},
+#     'c4.xlarge': {'vCPU': 4, 'Mem': 7.5},
+#     'c4.2xlarge': {'vCPU': 8, 'Mem': 15},
+#     'c4.4xlarge': {'vCPU': 16, 'Mem': 30},
+#     'c4.8xlarge': {'vCPU': 36, 'Mem': 60}, 
+    
+#     'r4.large': {'vCPU': 2, 'Mem': 15.25 - 3},
+#     'r4.xlarge': {'vCPU': 4, 'Mem': 30.5 - 6},
+#     'r4.2xlarge': {'vCPU': 8, 'Mem': 61 - 12}, 
+#     'r4.4xlarge': {'vCPU': 16, 'Mem': 122 - 25},
+#     'r4.8xlarge': {'vCPU': 32, 'Mem': 244 - 50},
+#     'r4.16xlarge': {'vCPU': 64, 'Mem': 488 - 50}}
+
+DEFAULT_LARGE_INSTANCE_WORKER_VCORES = 4
+DEFAULT_SMALL_INSTANCE_WORKER_VCORES = 2
+
+DASK_RESOURCE_PARAMETERS = [
+    'local_client_n_workers', 
+    'local_client_threads_per_worker', 
+    'yarn_container_n_workers',
+    'yarn_container_worker_vcores', 
+    'yarn_container_worker_memory', 
+    'n_worker_nodes']
 
 TASK_REQUIRED_KEYWORDS = [
     'memmap_root_dirname',
@@ -66,7 +92,6 @@ TASK_REQUIRED_KEYWORDS = [
 
 DEBUG_MODE_MAXITER = 10
 
-
 TaskManager = namedtuple('TaskManager', TASK_REQUIRED_KEYWORDS)
 
 
@@ -74,20 +99,18 @@ class EvaluationEngine():
 
     def __init__(self, local_client_n_workers=None, local_client_threads_per_worker=None, 
                  yarn_container_n_workers=None, yarn_container_worker_vcores=None, yarn_container_worker_memory=None,
-                 n_worker_nodes=None, use_yarn_cluster=None, use_ec2_instance=None, use_auto_config=None, instance_type=None,
+                 n_worker_nodes=None, use_yarn_cluster=None, use_auto_config=None, instance_type=None,
                  verbose=False):
         
         self.verbose = verbose
-
-        self.resource_config = DaskResourceConfigurer()
-        self.resource_config.validate_dask_resource_configs(
-        	local_client_n_workers, local_client_threads_per_worker, 
-        	yarn_container_n_workers, yarn_container_worker_vcores, yarn_container_worker_memory,
-        	n_worker_nodes, use_yarn_cluster, use_ec2_instance, use_auto_config, instance_type)
+        
+        self.validate_dask_resource_configs(
+            local_client_n_workers, local_client_threads_per_worker, 
+            yarn_container_n_workers, yarn_container_worker_vcores, yarn_container_worker_memory,
+            n_worker_nodes, use_yarn_cluster, use_auto_config, instance_type)
 
         self.has_dask_client = False
         self.has_prediction = False
-        self.has_data_loader_scatter = False
         
     def run_evaluation(self, evaluation_manager, debug_mode=False):
 
@@ -95,8 +118,8 @@ class EvaluationEngine():
 
         self.data = evaluation_manager.data
 
-        # if self.use_yarn_cluster and evaluation_manager.S3_path is None:
-        #     raise ValueError('if [ use_yarn_cluster ] is set to True, you must provide [ S3_path ] to EvaluationManager object.')
+        if self.use_yarn_cluster and evaluation_manager.S3_path is None:
+            raise ValueError('if [ use_yarn_cluster ] is set to True, you must provide [ S3_path ] to EvaluationManager object.')
 
         if not evaluation_manager.local_data_saved:
 
@@ -109,7 +132,7 @@ class EvaluationEngine():
 
             print('\u2757 Reusing previous evaluation data and dask cluster')
 
-            # self.taskq.flush_results()
+            self.taskq.flush_results()
         
         os.chdir(evaluation_manager.evaluation_task_dirpath)
             # by not removing the local_directory_path (root) but just the task specific dir, 
@@ -118,28 +141,11 @@ class EvaluationEngine():
             # the change of directory is required for sharing methods across yarn and local clients
             # also, need to start dask AFTER the change in directory 
 
-        if evaluation_manager.return_predictions:
-
-            prediction_records_dirpath = os.path.join(os.getcwd(), evaluation_manager.prediction_records_dirname)
-            try:
-                os.makedirs(prediction_records_dirpath)
-            except:
-                shutil.rmtree(prediction_records_dirpath)
-                os.makedirs(prediction_records_dirpath)
-
 
         if(not debug_mode):
             
             if not self.has_dask_client:
-                # self.start_dask_client()
-
-                self.dask_client = DaskClient()
-                self.dask_client.start_dask_client(local_client_n_workers=self.resource_config.local_client_n_workers,
-                              local_client_threads_per_worker=self.resource_config.local_client_threads_per_worker,
-                              yarn_client_n_workers=self.resource_config.yarn_client_n_workers,
-                              yarn_client_worker_vcores=self.resource_config.yarn_client_worker_vcores,
-                              yarn_client_worker_memory=self.resource_config.yarn_client_worker_memory)
-
+                self.start_dask_client()
                 self.has_dask_client = True
             else:
                 # reuse the client
@@ -153,26 +159,11 @@ class EvaluationEngine():
             print("\u2714 Preparing local data...            ", end="", flush=True)
             print()
             # self.memmap_map = load_local_data(evaluation_manager)
-
-
-            data_loader = DataLoader(os.path.join(os.getcwd(), evaluation_manager.memmap_root_dirname), True)
-            data_loader.save_data(
-			    evaluation_manager.data,
-			    evaluation_manager.orderby,
-			    evaluation_manager.groupby,
-			    evaluation_manager.numeric_types,
-			    evaluation_manager.missing_keys)
-
-        else:
-
-            data_loader = DataLoader(os.path.join(os.getcwd(), evaluation_manager.memmap_root_dirname), False)
-
-
-            # load_local_data(evaluation_manager)
+            load_local_data(evaluation_manager)
             # print('Completed!')
 
-        # root_dirpath = os.path.join(os.getcwd(), evaluation_manager.memmap_root_dirname)
-        # self.f = HMF.open_file(root_dirpath, mode='r+')
+        root_dirpath = os.path.join(os.getcwd(), evaluation_manager.memmap_root_dirname)
+        self.f = HMF.open_file(root_dirpath, mode='r+')
         
         # evaluation_manager is too bulky to travel across network
         self.task_manager = TaskManager(
@@ -181,7 +172,7 @@ class EvaluationEngine():
 
         if not evaluation_manager.local_data_saved:
             
-            if self.resource_config.use_yarn_cluster:
+            if self.use_yarn_cluster:
                 
                 print("\u2714 Uploading local data to S3 bucket...   ", end="", flush=True)
                 upload_local_data(self.task_manager)
@@ -224,11 +215,11 @@ class EvaluationEngine():
             print(time.time() - start_time)
 
 
-            for group_key in data_loader.f.get_node_attr('/', key='sorted_group_keys'):
+            for group_key in self.f.get_node_attr('/', key='sorted_group_keys'):
 
                 if self.task_manager.orderby:
 
-                    group_orderby_array = data_loader.f.get_array('/{}/orderby_array'.format(group_key))
+                    group_orderby_array = self.get_group_orderby_array(group_key)
 
                     cv = get_cv_splitter(
                         self.task_manager.cross_validation_scheme, 
@@ -238,11 +229,11 @@ class EvaluationEngine():
                         group_orderby_array)
                     n_splits = cv.get_n_splits()
 
-                    task_graph = TaskGraph(self.task_manager, cv, verbose=self.verbose)
+                    task_graph = TaskGraph(self.task_manager, cv)
 
                     for i in range(n_splits):
 
-                        task_graph.run(group_key, i, data_loader)
+                        task_graph.run(group_key, i)
 
                         iter_count += 1
 
@@ -264,16 +255,11 @@ class EvaluationEngine():
         print("\n\u23F3 Starting evaluations...   ")
         self.dask_client.get_dashboard_link()
         # for group_key in self.memmap_map['attributes']['sorted_group_keys']:
-
-        if not self.has_data_loader_scatter:
-            self.data_loader_scattered = self.dask_client.scatter(data_loader)[0]
-            self.has_data_loader_scatter = True
-        
-        for group_key in data_loader.f.get_node_attr('/', key='sorted_group_keys'):
+        for group_key in self.f.get_node_attr('/', key='sorted_group_keys'):
 
             if self.task_manager.orderby:
 
-                group_orderby_array = data_loader.f.get_array('/{}/orderby_array'.format(group_key))
+                group_orderby_array = self.get_group_orderby_array(group_key)
 
                 cv = get_cv_splitter(
                     self.task_manager.cross_validation_scheme, 
@@ -287,17 +273,17 @@ class EvaluationEngine():
 
                 for i in range(n_splits):
 
-
-                    self.dask_client.submit(task_graph.run, group_key, i, self.data_loader_scattered)
-
-
-                    # self.taskq.put_task(self.dask_client.submit, task_graph.run, group_key, i)
+                    self.taskq.put_task(self.dask_client.submit, task_graph.run, group_key, i)
                     
             else:
                 pass  # normal cross validations
 
         os.chdir(evaluation_manager.initial_dirpath)
         
+    def get_group_orderby_array(self, group_key):
+
+        group_orderby_array = self.f.get_array('/{}/orderby_array'.format(group_key))
+        return group_orderby_array
 
     # def start_dask_client(self):
         
@@ -350,9 +336,9 @@ class EvaluationEngine():
                 
     def get_evaluation_results(self):
 
-        # self.taskq.join()
+        self.taskq.join()
 
-        res = copy.deepcopy(self.dask_client.get_results())
+        res = copy.deepcopy(self.taskq.get_results())
 
         tmp = self.data[[self.task_manager.orderby, constants.EF_ORDERBY_NAME]]
         tmp.set_index(constants.EF_ORDERBY_NAME, inplace=True)
@@ -386,9 +372,9 @@ class EvaluationEngine():
 
         if not self.has_prediction:
 
-            self.dask_client.get_results()
+            self.taskq.join()
 
-            if self.resource_config.use_yarn_cluster:
+            if self.use_yarn_cluster:
 
                 print("\n\u2714 Uploading remote prediction results...   ", end="", flush=True)
                 self.dask_client.submit_per_node(upload_remote_data, self.task_manager)
@@ -428,9 +414,6 @@ class EvaluationEngine():
                 constants.EF_ORDERBY_NAME,
                 constants.HMF_MEMMAP_MAP_NAME,
                 constants.HMF_GROUPBY_NAME], axis=1, inplace=False, errors='ignore')
-
-
-
 
 
 
