@@ -50,15 +50,18 @@ class DaskResourceConfigurer():
         local_client_resources_set = False
         yarn_client_resources_set = False
 
+        # local resources were set manually by user
         if (local_client_n_workers is not None and 
             local_client_threads_per_worker is not None):
             local_client_resources_set = True
 
-            if (yarn_container_n_workers is not None and 
-                yarn_container_worker_vcores is not None and
-                yarn_container_worker_memory is not None and
-                n_worker_nodes is not None):
-                yarn_client_resources_set = True
+        # yarn resources were set manually by user
+        # it 
+        if (yarn_container_n_workers is not None and 
+            yarn_container_worker_vcores is not None and
+            yarn_container_worker_memory is not None and
+            n_worker_nodes is not None):
+            yarn_client_resources_set = True
 
         if local_client_resources_set:
             self.local_client_n_workers = local_client_n_workers
@@ -100,7 +103,7 @@ class DaskResourceConfigurer():
                               'and [ n_worker_nodes ].')
                         print('EX: instance_type="m4.2xlarge", n_worker_nodes=3 (excluding the master node)')
 
-                    if use_ec2_instance:
+                    if (use_ec2_instance):
 
                         print('\n\u2714 In order to auto config ec2 instance, please provide the [ instance_type ] (EX: instance_type="m4.2xlarge")')
                         # print('')
