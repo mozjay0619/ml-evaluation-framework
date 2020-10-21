@@ -14,7 +14,7 @@ class DaskClient():
     def start_dask_client(self, dask_client=None,
                           local_client_n_workers=None, local_client_threads_per_worker=None,
                           yarn_client_n_workers=None, yarn_client_worker_vcores=None, 
-                          yarn_client_worker_memory=None):
+                          yarn_client_worker_memory=None, use_dashboard=True):
         """
         The configure inputs are None default since we could pass in dask_client directly
         """
@@ -26,7 +26,8 @@ class DaskClient():
         if not self.multithreaded:
             self.dask_client = ClientFuture(
                 local_client_n_workers=local_client_n_workers, 
-                local_client_threads_per_worker=local_client_threads_per_worker)
+                local_client_threads_per_worker=local_client_threads_per_worker, 
+                use_dashboard=use_dashboard)
             
         else:
             self.taskq = MultiThreadTaskQueue(num_threads=num_threads)

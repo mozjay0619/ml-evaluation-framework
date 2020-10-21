@@ -75,7 +75,7 @@ class EvaluationEngine():
     def __init__(self, local_client_n_workers=None, local_client_threads_per_worker=None, 
                  yarn_container_n_workers=None, yarn_container_worker_vcores=None, yarn_container_worker_memory=None,
                  n_worker_nodes=None, use_yarn_cluster=None, use_ec2_instance=None, use_auto_config=None, instance_type=None,
-                 verbose=False):
+                 verbose=False, use_dashboard=True):
         
         self.verbose = verbose
 
@@ -88,6 +88,8 @@ class EvaluationEngine():
         self.has_dask_client = False
         self.has_prediction = False
         self.has_data_loader_scatter = False
+
+        self.use_dashboard = use_dashboard
         
     def run_evaluation(self, evaluation_manager, debug_mode=False):
 
@@ -138,7 +140,8 @@ class EvaluationEngine():
                               local_client_threads_per_worker=self.resource_config.local_client_threads_per_worker,
                               yarn_client_n_workers=self.resource_config.yarn_client_n_workers,
                               yarn_client_worker_vcores=self.resource_config.yarn_client_worker_vcores,
-                              yarn_client_worker_memory=self.resource_config.yarn_client_worker_memory)
+                              yarn_client_worker_memory=self.resource_config.yarn_client_worker_memory,
+                              use_dashboard=self.use_dashboard)
 
                 self.has_dask_client = True
             else:

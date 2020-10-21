@@ -200,13 +200,20 @@ class ClientFuture_Multithread():
 
 class ClientFuture():
     
-    def __init__(self, local_client_n_workers, local_client_threads_per_worker):
+    def __init__(self, local_client_n_workers, local_client_threads_per_worker, use_dashboard=True):
+
+        self.use_dashboard = use_dashboard
+
+        if use_dashboard:
+            self.dashboard_address = ':8787'
+        else:
+            self.dashboard_address = None
         
         host_ip = get_host_ip_address()
         self.local_cluster = LocalCluster(n_workers=local_client_n_workers,
                                threads_per_worker=local_client_threads_per_worker, 
                                processes=True, 
-                               host=host_ip)
+                               host=host_ip, dashboard_address=self.dashboard_address)
         self.local_client = Client(address=self.local_cluster, timeout='2s') 
         
     def submit(self, func, *args, **kwargs):
@@ -221,4 +228,7 @@ class ClientFuture():
         
     def get_dashboard_link(self):
         
-        print('local cluster: ', self.local_cluster.dashboard_link)
+        if self.use_dashboard:
+            print('local cluster: ', self.local_cluster.dashboard_link)
+        else:
+            print('dashboard disabled')
