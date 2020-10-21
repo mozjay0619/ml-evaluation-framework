@@ -176,7 +176,7 @@ class DualClientFuture():
         print('yarn cluster:  ', self.yarn_cluster.dashboard_link)
 
 
-class ClientFuture():
+class ClientFuture_Multithread():
     
     def __init__(self, local_client_n_workers, local_client_threads_per_worker):
         
@@ -196,3 +196,29 @@ class ClientFuture():
         
         print('local cluster: ', self.local_cluster.dashboard_link)
 
+
+
+class ClientFuture():
+    
+    def __init__(self, local_client_n_workers, local_client_threads_per_worker):
+        
+        host_ip = get_host_ip_address()
+        self.local_cluster = LocalCluster(n_workers=local_client_n_workers,
+                               threads_per_worker=local_client_threads_per_worker, 
+                               processes=True, 
+                               host=host_ip)
+        self.local_client = Client(address=self.local_cluster, timeout='2s') 
+        
+    def submit(self, func, *args, **kwargs):
+        
+        future = self.local_client.submit(func, *args, **kwargs)
+        return future
+
+    def scatter(self, *args):
+
+        scattered_args = self.local_client.scatter(args, broadcast=True)
+        return scattered_args
+        
+    def get_dashboard_link(self):
+        
+        print('local cluster: ', self.local_cluster.dashboard_link)

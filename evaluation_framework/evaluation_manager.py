@@ -1,5 +1,5 @@
-from ._evaluation_manager.config_setter import ConfigSetter 
-from ._evaluation_manager.method_setter import MethodSetter
+from .evaluation_manager_core.config_setter import ConfigSetter 
+from .evaluation_manager_core.method_setter import MethodSetter
 
 
 

@@ -1,8 +1,8 @@
-from ..default_methods import default_preprocess_train_data
-from ..default_methods import default_preprocess_test_data
-from ..default_methods import default_model_fit
-from ..default_methods import default_model_predict
-from ..default_methods import default_evaluate_prediction
+from ..task_graph.default_methods import default_preprocess_train_data
+from ..task_graph.default_methods import default_preprocess_test_data
+from ..task_graph.default_methods import default_model_fit
+from ..task_graph.default_methods import default_model_predict
+from ..task_graph.default_methods import default_evaluate_prediction
 
 import re
 import copy
