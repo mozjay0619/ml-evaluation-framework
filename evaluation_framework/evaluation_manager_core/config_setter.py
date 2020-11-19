@@ -359,7 +359,7 @@ class ConfigSetter():
                 feature_names = self.feature_names
                 self.feature_names = {group_key: feature_names for group_key in group_keys}
             else:
-                self.data[self.dummy_region_uuid] = 'dummy'
+                self.data[self.dummy_region_uuid] = self.dummy_region_uuid
                 self.feature_names = {self.dummy_region_uuid: self.feature_names}
             
         feature_names_list = get_merged_list_from_dict_list_values(self.feature_names)
@@ -469,6 +469,10 @@ class ConfigSetter():
         
         if isinstance(self.hyperparameters, list):
             self.hyperparameters = {self.dummy_region_uuid: self.hyperparameters} # check fit
+
+
+            print(self.hyperparameters)
+
             return
         
         if not isinstance(self.hyperparameters, dict):
