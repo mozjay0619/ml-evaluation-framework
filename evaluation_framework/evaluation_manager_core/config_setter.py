@@ -470,9 +470,6 @@ class ConfigSetter():
         if isinstance(self.hyperparameters, list):
             self.hyperparameters = {self.dummy_region_uuid: self.hyperparameters} # check fit
 
-
-            print(self.hyperparameters)
-
             return
         
         if not isinstance(self.hyperparameters, dict):
