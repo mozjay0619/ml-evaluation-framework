@@ -43,9 +43,11 @@ class DaskResourceConfigurer():
         self.yarn_client_worker_vcores=None
         self.yarn_client_worker_memory=None
 
+        self.use_yarn_cluster = False
+
     def validate_dask_resource_configs(self, local_client_n_workers, local_client_threads_per_worker, 
         yarn_container_n_workers, yarn_container_worker_vcores, yarn_container_worker_memory,
-        n_worker_nodes, use_yarn_cluster, use_ec2_instance, use_auto_config, instance_type):
+        n_worker_nodes, use_yarn_cluster, use_ec2_instance, use_auto_config, instance_type, use_dashboard):
 
         local_client_resources_set = False
         yarn_client_resources_set = False
@@ -88,8 +90,30 @@ class DaskResourceConfigurer():
                       'parameters:\n\n\u25BA {}'.format('  '.join(DASK_RESOURCE_PARAMETERS[0:4])))
             print('\n  ' + '  '.join(DASK_RESOURCE_PARAMETERS[4:]))
 
+        # optional arguments
+        optional_args = []
+
         if (use_auto_config is None) or (use_yarn_cluster is None):
-            print('\nOptional argument(s):\n\n\u25BA {}'.format('instance_type'))
+            optional_args.append('instance_type')
+
+        self.use_dashboard = use_dashboard
+        optional_args.append('use_dashboard')
+
+        if len(optional_args)>0:
+            print('\nOptional argument(s):\n\n\u25BA {}'.format('  '.join(optional_args)))
+
+
+#         if (use_auto_config is None) or (use_yarn_cluster is None):
+#             print('\nOptional argument(s):\n\n\u25BA {}'.format('instance_type'))
+
+
+
+# if len(self.required_args)>0 or len(self.ordered_CV_required_args)>0:
+#             if len(self.optional_args)>0:
+#                 print('\nOptional argument(s):\n\n\u25BA {}'.format('  '.join(self.optional_args)))
+#                 print()
+
+
 
         if use_auto_config:
 

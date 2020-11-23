@@ -83,7 +83,7 @@ class EvaluationEngine():
         self.resource_config.validate_dask_resource_configs(
         	local_client_n_workers, local_client_threads_per_worker, 
         	yarn_container_n_workers, yarn_container_worker_vcores, yarn_container_worker_memory,
-        	n_worker_nodes, use_yarn_cluster, use_ec2_instance, use_auto_config, instance_type)
+        	n_worker_nodes, use_yarn_cluster, use_ec2_instance, use_auto_config, instance_type, use_dashboard)
 
         self.has_dask_client = False
         self.has_prediction = False
