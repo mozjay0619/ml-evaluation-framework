@@ -227,7 +227,11 @@ class EvaluationEngine():
             print(time.time() - start_time)
 
 
-            for group_key in data_loader.f.get_node_attr('/', key='sorted_group_keys'):
+            for group_key in data_loader.f.get_sorted_group_names():
+
+                print(group_key)
+
+                
 
                 if self.task_manager.orderby:
 
@@ -272,7 +276,7 @@ class EvaluationEngine():
             self.data_loader_scattered = self.dask_client.scatter(data_loader)[0]
             self.has_data_loader_scatter = True
         
-        for group_key in data_loader.f.get_node_attr('/', key='sorted_group_keys'):
+        for group_key in data_loader.f.get_sorted_group_names():
 
             if self.task_manager.orderby:
 
