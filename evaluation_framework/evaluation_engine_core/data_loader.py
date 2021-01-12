@@ -80,14 +80,14 @@ class DataLoader():
         self.f.register_array('numeric_types', numeric_columns)
         self.f.register_array('orderby_array', constants.EF_ORDERBY_NAME)
         
-        for i in range(len(self.f.group_names)):
+        for i in range(len(self.f.get_group_names())):
 
-            self.f.set_node_attr('/{}'.format(self.f.group_names[i]), 
+            self.f.set_node_attr('/{}'.format(self.f.get_group_names()[i]), 
                                  key='numeric_keys', value=numeric_columns)
-            self.f.set_node_attr('/{}'.format(self.f.group_names[i]), 
+            self.f.set_node_attr('/{}'.format(self.f.get_group_names()[i]), 
                                  key='missing_keys', value=missing_keys)
         
-        group_key_size_tuples = sorted(zip(self.f.group_names, self.f.group_sizes), 
+        group_key_size_tuples = sorted(zip(self.f.get_group_names(), self.f.group_sizes), 
                                        key=lambda x: x[1], reverse=True)
         sorted_group_keys = [elem[0] for elem in group_key_size_tuples]
         self.f.set_node_attr('/', key='sorted_group_keys', value=sorted_group_keys)
