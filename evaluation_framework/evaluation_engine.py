@@ -158,17 +158,25 @@ class EvaluationEngine():
             # self.memmap_map = load_local_data(evaluation_manager)
 
 
-            data_loader = DataLoader(os.path.join(os.getcwd(), evaluation_manager.memmap_root_dirname), True)
-            data_loader.save_data(
+            self.data_loader = DataLoader(os.path.join(os.getcwd(), evaluation_manager.memmap_root_dirname), True)
+            self.data_loader.save_data(
 			    evaluation_manager.data,
 			    evaluation_manager.orderby,
 			    evaluation_manager.groupby,
 			    evaluation_manager.numeric_types,
 			    evaluation_manager.missing_keys)
 
+
+
         else:
 
-            data_loader = DataLoader(os.path.join(os.getcwd(), evaluation_manager.memmap_root_dirname), False)
+            pass
+
+
+
+            # data_loader = DataLoader(os.path.join(os.getcwd(), evaluation_manager.memmap_root_dirname), False)
+
+            # return data_loader
 
 
             # load_local_data(evaluation_manager)
@@ -227,7 +235,7 @@ class EvaluationEngine():
             print(time.time() - start_time)
 
 
-            for group_key in data_loader.f.get_sorted_group_names():
+            for group_key in self.data_loader.f.get_sorted_group_names():
 
                 print(group_key)
 
@@ -235,7 +243,7 @@ class EvaluationEngine():
 
                 if self.task_manager.orderby:
 
-                    group_orderby_array = data_loader.f.get_array('/{}/orderby_array'.format(group_key))
+                    group_orderby_array = self.data_loader.f.get_array('/{}/orderby_array'.format(group_key))
 
                     cv = get_cv_splitter(
                         self.task_manager.cross_validation_scheme, 
@@ -249,7 +257,7 @@ class EvaluationEngine():
 
                     for i in range(n_splits):
 
-                        task_graph.run(group_key, i, data_loader)
+                        task_graph.run(group_key, i, self.data_loader)
 
                         iter_count += 1
 
@@ -273,14 +281,14 @@ class EvaluationEngine():
         # for group_key in self.memmap_map['attributes']['sorted_group_keys']:
 
         if not self.has_data_loader_scatter:
-            self.data_loader_scattered = self.dask_client.scatter(data_loader)[0]
+            self.data_loader_scattered = self.dask_client.scatter(self.data_loader)[0]
             self.has_data_loader_scatter = True
         
-        for group_key in data_loader.f.get_sorted_group_names():
+        for group_key in self.data_loader.f.get_sorted_group_names():
 
             if self.task_manager.orderby:
 
-                group_orderby_array = data_loader.f.get_array('/{}/orderby_array'.format(group_key))
+                group_orderby_array = self.data_loader.f.get_array('/{}/orderby_array'.format(group_key))
 
                 cv = get_cv_splitter(
                     self.task_manager.cross_validation_scheme, 
