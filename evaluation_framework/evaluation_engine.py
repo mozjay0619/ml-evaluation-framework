@@ -375,7 +375,7 @@ class EvaluationEngine():
         tmp_dict = {k: str(v.date()) for k, v in tmp_dict.items()}
 
         for idx, elem in enumerate(res):
-            res[idx][-2] = [tmp_dict[_elem] for _elem in elem[-2]]
+            res[idx][-2] = [tmp_dict[_elem] for _elem in elem[-2] if _elem in tmp_dict]
 
         res_pdf = pd.DataFrame(res, columns=['group_key', 'test_idx', 'eval_result', 'train_size', 'test_size', 'test_dates', 'duration'])
         return res_pdf.sort_values(by=['group_key', 'test_idx']).reset_index(drop=True)
@@ -384,7 +384,7 @@ class EvaluationEngine():
         # res_pdf = pd.DataFrame(res, columns=['group_key', 'test_idx', 'eval_result', 'train_size', 'test_size', 'duration'])
         # return res_pdf.sort_values(by=['group_key', 'test_idx']).reset_index(drop=True)
 
-        return res
+        # return res
 
     def get_evaluation_summary(self):
 
