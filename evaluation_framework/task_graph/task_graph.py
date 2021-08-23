@@ -204,7 +204,7 @@ class TaskGraph():
         test_data_prediction = test_data.merge(prediction_result, on=constants.EF_UUID_NAME, how='inner')
 
         predictions_array = test_data_prediction[[constants.EF_UUID_NAME, constants.EF_PREDICTION_NAME]]
-        predictions_array = predictions_array.values.astype(np.float32)
+        predictions_array = predictions_array.values.astype(np.float64)
 
         filename = '__'.join((group_key, str(cv_split_index))) + '.npy'
         filepath = os.path.join(os.getcwd(), self.task_manager.prediction_records_dirname, filename)

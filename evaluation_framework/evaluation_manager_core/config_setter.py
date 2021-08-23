@@ -94,7 +94,7 @@ class ConfigSetter():
     def define_helper_columns(self):
 
         # create key column to join the predictions
-        key_column = np.arange(len(self.data)).astype(np.float32)
+        key_column = np.arange(len(self.data)).astype(np.float64)
         self.data[constants.EF_UUID_NAME] = key_column
 
         # assuming data validation was done before...
